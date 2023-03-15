@@ -1833,6 +1833,9 @@ Selects: REF_TRACKER [=n]
 
   Self test for reference tracker (TEST_REF_TRACKER) [N/m/y/?] (NEW) y
 
+  Keep this CONFIG_TEST_REF_TRACKER=n or else you get a stack dump and what appears to be a kernel issue: https://bugzilla.kernel.org/show_bug.cgi?id=217191
+  but it's really not, just the reference tracker showing that it can track the reference.
+
 There is no help available for this option.
 Symbol: TEST_SCANF [=n]
 Type  : tristate
