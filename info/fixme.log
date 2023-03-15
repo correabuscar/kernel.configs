@@ -145,7 +145,8 @@ vmalloc=nn[KMG] [KNL,BOOT] Forces the vmalloc area to have an exact
 globtest CONFIG_GLOB_SELFTEST it's in 'Library routines'
 test_string CONFIG_STRING_SELFTEST it's in 'Library routines'
 --------
-find out if 
+they cannot be both on, it's either poisoning and no inits, or only inits.
+done://find out if 
 CONFIG_INIT_ON_FREE_DEFAULT_ON=y aka init_on_free=1
 and 
 CONFIG_PAGE_POISONING=y aka page_poison=1    
