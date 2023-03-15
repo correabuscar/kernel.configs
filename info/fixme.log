@@ -1,0 +1,407 @@
+--------
+F2 of CONFIG_SUSPEND_SKIP_SYNC has typo:
+"the default for the run-tim switch."
+--------
+F2 of CONFIG_X86_CHECK_BIOS_CORRUPTION refers to the .rst instead of .txt file Documentation/admin-guide/kernel-parameters.rst
+and the .rst doesn't already contains the referenced memory_corruption_check_size or memory_corruption_check_period text!
+so either, add it to .rst from .txt or don't ref. the .txt
+--------
+using memory_corruption_check_size=620K (or more) will kernel panic because it can't allox 0x6000 bytes aligned to 4096 bytes(PAGE_SIZE) between 0->1M range of memory, for some reason!
+--------
+typo in drivers/net/ethernet/intel/igb/igb_main.c "structue"
+--------
+FIXME: repo mirror is at https://github.com/doug-gilbert/sdparm  otherwise it would be svn somewhere(dno where), else source code is only in tarballs
+with CONFIG_DEBUG_BLOCK_EXT_DEVT=y
+$ sudo sdparm --command=sync /dev/sda
+SCSI INQUIRY command failed on /dev/sda
+
+lsblk shows:
+sda    259:0       0 223.6G  0 disk
+└─sda1 259:524288  0 223.6G  0 part /
+
+  /usr/bin/sdparm is owned by sdparm 1.11-1
+URL             : http://sg.danny.cz/sg/sdparm.html
+
+also this too maybe be caused by it(recompiling with =n to see if that was it):
+$ sudo fsck.vfat -v /dev/sdc1
+[sudo] password for user:
+fsck.fat 4.1 (2017-01-24)
+Checking we can access the last sector of the filesystem
+Seek to 31104957952:Invalid argument
+
+^ lookslike this only happens on this 32G card, not on the 8G card!
+so only the sdparm thing might be an issue here!
+--------------
+//test_ida tho it says: 'IDA: 147353 of 147353 tests passed' on dmesg, modprobe says: "modprobe: ERROR: could not insert 'test_ida': Invalid argument"
+//it has no args(according to modinfo), so nvmFIXME, actually this might be intentional so that it can be re-inserted easily(ie. without prior removal), just like find_bit_benchmark.o (aka CONFIG_FIND_BIT_BENCHMARK), so nevermind!
+//CONFIG_TEST_IDA=m
+--------------
+see why these fail when 'modprobe test_meminit' aka CONFIG_TEST_MEMINIT=m
+[ 2582.547342] test_meminit: test_pages failed 10 out of 10 times
+[ 2582.553233] test_meminit: test_kvmalloc failed 40 out of 40 times
+[ 2582.913330] test_meminit: test_kmemcache failed 20 out of 70 times
+[ 2582.999233] test_meminit: all 10 tests in test_rcu_persistent passed
+[ 2582.999241] test_meminit: failures: 70 out of 130
+
+also "modprobe: ERROR: could not insert 'test_meminit': Invalid argument"
+--------
+fixme: see why
+test_stackinit (failures: 23)
+--------
+module test_vmalloc fails (modprobe exits with exit code 1 after 2min6sec while 4x cores are 100% in use all the time), seeing this on dmesg:
+[ 2946.300843] vmap allocation for size 8192 failed: use vmalloc=<size> to increase size
+[ 2946.300853] warn_alloc: 3 callbacks suppressed
+[ 2946.300859] vmalloc_test/0: vmalloc: allocation failure: 4096 bytes, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+...
+[ 2976.871193] vmap allocation for size 8192 failed: use vmalloc=<size> to increase size
+[ 2976.871206] vmalloc_test/2: vmalloc: allocation failure: 4096 bytes, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+...
+[ 3021.778896] vmap allocation for size 8192 failed: use vmalloc=<size> to increase size
+[ 3021.778911] vmalloc_test/3: vmalloc: allocation failure: 4096 bytes, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+...
+[ 3022.323017] vmap allocation for size 8192 failed: use vmalloc=<size> to increase size
+...
+[ 3072.872266] Summary: fix_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 15442358 usec
+[ 3072.872274] Summary: full_fit_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16608610 usec
+[ 3072.872278] Summary: long_busy_list_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 41822880 usec
+[ 3072.872281] Summary: random_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 21467024 usec
+[ 3072.872284] Summary: fix_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 12516195 usec
+[ 3072.872287] Summary: random_size_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 17592629 usec
+[ 3072.872290] Summary: align_shift_alloc_test passed: 0 failed: 1 repeat: 1 loops: 1000000 avg: 613 usec
+[ 3072.872294] Summary: pcpu_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 377231 usec
+[ 3072.872296] All test took CPU0=175838799742 cycles
+[ 3072.879219] Summary: fix_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 15075980 usec
+[ 3072.879229] Summary: full_fit_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16286147 usec
+[ 3072.879232] Summary: long_busy_list_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 42573432 usec
+[ 3072.879235] Summary: random_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 23533795 usec
+[ 3072.879238] Summary: fix_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16947431 usec
+[ 3072.879241] Summary: random_size_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 10796628 usec
+[ 3072.879244] Summary: align_shift_alloc_test passed: 0 failed: 1 repeat: 1 loops: 1000000 avg: 1385 usec
+[ 3072.879247] Summary: pcpu_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 214126 usec
+[ 3072.879250] All test took CPU1=175281743644 cycles
+[ 3072.888821] Summary: fix_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 14159363 usec
+[ 3072.888830] Summary: full_fit_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16170770 usec
+[ 3072.888833] Summary: long_busy_list_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 43425264 usec
+[ 3072.888837] Summary: random_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 21234556 usec
+[ 3072.888840] Summary: fix_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 15958177 usec
+[ 3072.888843] Summary: random_size_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 15374140 usec
+[ 3072.888846] Summary: align_shift_alloc_test passed: 0 failed: 1 repeat: 1 loops: 1000000 avg: 2935 usec
+[ 3072.888849] Summary: pcpu_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 231635 usec
+[ 3072.888852] All test took CPU2=176857961757 cycles
+[ 3072.888939] Summary: fix_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16106474 usec
+[ 3072.888942] Summary: full_fit_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 14543048 usec
+[ 3072.888945] Summary: long_busy_list_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 42190775 usec
+[ 3072.888949] Summary: random_size_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 21386065 usec
+[ 3072.888952] Summary: fix_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 16822806 usec
+[ 3072.888955] Summary: random_size_align_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 14929085 usec
+[ 3072.888958] Summary: align_shift_alloc_test passed: 0 failed: 1 repeat: 1 loops: 1000000 avg: 1471 usec
+[ 3072.888961] Summary: pcpu_alloc_test passed: 1 failed: 0 repeat: 1 loops: 1000000 avg: 357135 usec
+[ 3072.888963] All test took CPU3=176550546560 cycles
+
+
+modprobe: ERROR: could not insert 'test_vmalloc': Resource temporarily unavailable
+2min57sec now (after all the other security stuff including mitigations are enabled!)
+
+vmalloc=nn[KMG] [KNL,BOOT] Forces the vmalloc area to have an exact
+    size of <nn>. This can be used to increase the
+    minimum size (128MB on x86). It can also be used to
+    decrease the size and leave more room for directly
+    mapped kernel RAM.
+
+--------
+//ok so it doesn't matter if it's '-' or '_' in filename because modprobe can find it anyway! also doesn't matter that modprobing fails, it's intentional even if all tests pass! (if they don't pass, you'll see output!)
+//filename has '-' instead of '_' like all the other test_* modules:
+//obj-$(CONFIG_TEST_STRING_HELPERS) += test-string_helpers.o
+//in linux-stable/lib/Makefile
+//
+//AND it fails:
+//test_string_helpers: Running tests...
+//modprobe: ERROR: could not insert 'test_string_helpers': Invalid argument
+//fail is ok due to return -EINVAL; in test_string_helpers_init() which does it so you can modprobe it again!
+//  ---
+//this also has '-' instead of '_' in filename: test-kstrtox.ko
+//obj-$(CONFIG_TEST_KSTRTOX) += test-kstrtox.o
+//in same file: linux-stable/lib/Makefile
+//CONFIG_TEST_KSTRTOX=m
+//$ time sudo modprobe test-kstrtox
+//modprobe: ERROR: could not insert 'test_kstrtox': Invalid argument
+//it doesn't say anything on dmesg tho! and you see how modprobe uses '_' hmm...
+//
+//trying patch:
+//two_test_modules_used_dash_instead_of_underscore_in_their_filenames.patch
+//TODO: filenames also need to be renamed:
+//./lib/test-string_helpers.c
+//./lib/test-kstrtox.c
+//
+//well, interesting this still works:
+//$ time sudo modprobe test_string_helpers
+//even without '-' ! even tho filename is currently with '-' !!
+//  so I guess '-' or '_' is irrelevant!!!!
+--------
+* move these into Kernel hacking  ---> Kernel Testing and Coverage  ---> [*] Runtime Testing  --->
+  because that's where the other tests are!
+* see file: lib/Makefile
+
+globtest CONFIG_GLOB_SELFTEST it's in 'Library routines'
+test_string CONFIG_STRING_SELFTEST it's in 'Library routines'
+--------
+find out if 
+CONFIG_INIT_ON_FREE_DEFAULT_ON=y aka init_on_free=1
+and 
+CONFIG_PAGE_POISONING=y aka page_poison=1    
+both do write the the same memory on free ? only one should, if both are set, imho
+because there's no point in zeroing the freed memory and then poisoning it; should be either or!
+and if you try all =1 aka page_poison=1 init_on_free=1 init_on_alloc=1 then you get:
+[   22.533779] mem auto-init: CONFIG_PAGE_POISONING is on, will take precedence over init_on_alloc and init_on_free
+[   22.535704] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+and it acts as if you did: page_poison=1 init_on_free=0 init_on_alloc=0
+
+if you want meminit tests to pass though (aka CONFIG_TEST_MEMINIT=y ), you've to do:
+addargs "page_poison=0 init_on_free=1 init_on_alloc=1" //you need heap initialization(those init_on_*) to get "[   25.467867] test_meminit: all 130 tests passed!" or else you get "[   25.461187] test_meminit: failures: 70 out of 130" see: https://bugzilla.kernel.org/show_bug.cgi?id=217191
+
+--------
+test_stackinit has 23 failure when CONFIG_INIT_STACK_NONE=y on i87k, possibly others not being set to zero memory!
+  no errors on Z575 when =n and CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL=y !
+--------
+ the text "binfmt_misc.txt" in ./admin-guide/java.rst (at least) should be replaced with "binfmt-misc.rst" which is eg. file name ./admin-guide/binfmt-misc.rst
+--------
+TODO: Probably not needed but kept as =y anywya:
+  CONFIG_YENTA_O2
+  CONFIG_YENTA_TI
+  CONFIG_YENTA_ENE_TUNE
+  CONFIG_YENTA_TOSHIBA
+do a dmesg diff between having these =y and having them =n, on T400
+--------
+kernel .config diff between i87k and Z575:
+
+-CONFIG_RESERVE_ACTIVEFILE_KBYTES=705536
++CONFIG_RESERVE_ACTIVEFILE_KBYTES=305536
+
+make sure it's applied somehow, depending on the host that the kernel is deployed on!
+  or, just use that sysctl option? see: /patches/portage/sys-kernel/gentoo-sources.reused/4500_le9h.patch (it's vm.unevictable_activefile_kbytes = 305536 )
+--------
+search for CONFIG_PCIE_BUS_DEFAULT and the other 4 options (only in kernel 5.10.1, not in 5.9.14) and then see if the commandline overrides(as opposed to compile time one) have any effect on PCI Express stuff? maybe on the mSATA things? for now it's set =y for default
+'pci=pcie_bus_tune_off'
+'pci=pcie_bus_safe'
+'pci=pcie_bus_perf'
+'pci=pcie_bus_peer2peer'.
+--------
+    I'm at 30% in 5p9p14_to_5p10p2.diff file, search for CONFIG_PCIE_BUS_DEFAULT and do from next block! to add any new options!
+--------
+Do I need? (since 5.12.1 or earlier, but after 5.10.12 kernel):
++CONFIG_SENSORS_AHT10 is not set  ~ Aosong AHT10 
++CONFIG_SENSORS_LTC2992 is not set ~ Linear Technology LTC2992
++CONFIG_SENSORS_MAX127 is not set ~ Maxim MAX127 12-bit 8-channel Data Acquisition System
++CONFIG_SENSORS_SBTSI is not set ~ Emulated SB-TSI temperature sensor
++CONFIG_SENSORS_TPS23861 is not set ~ Texas Instruments TPS23861 PoE PSE
++CONFIG_I2C_HID_ACPI is not set ~ HID over I2C transport layer ACPI driver
+--------
+how does that pstore thing work?
+    I have:
+    CONFIG_PSTORE=y
+CONFIG_HAVE_ACPI_APEI=y
+CONFIG_HAVE_ACPI_APEI_NMI=y
+CONFIG_ACPI_APEI=y
+CONFIG_ACPI_APEI_GHES=y
+CONFIG_ACPI_APEI_PCIEAER=y
+# CONFIG_ACPI_APEI_EINJ is not set
+# CONFIG_ACPI_APEI_ERST_DEBUG is not set
+
+--------
+    don't know how to use any led triggers, affecting which leds btw?
+    +CONFIG_LEDS_TRIGGER_TTY is not set
+    if it's those in /sys/class/leds/ then it's only the 3 keyboard leds which are visible there!
+--------
+    todo: see how these can be used(seen in kernel 5.12.1):
+    CONFIG_DTPM ~ This enables support for the power capping for the dynamic thermal power management userspace engine.
+     Prompt: Power capping for Dynamic Thermal Power Management (EXPERIMENTAL)
+    CONFIG_DTPM_CPU ~ Add CPU power capping based on the energy model ~ This enables support for CPU power limitation based on energy model.
+--------
+    don't know if want yet or ever? CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT so it's unset, it's at v4 aka CONFIG_DEBUG_INFO_DWARF4=y
+--------
+    since 5.13.1(or earlier?) CONFIG_BPF_UNPRIV_DEFAULT_OFF is new option and unset because I'm not sure if I should set it, and if I do, it something may stop working
+--------
+    TODO: check any new paranoid settings that I'd want to set from https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
+--------
+    TODO: see if to set this(currently unset): GENTOO_KERNEL_SELF_PROTECTION_X86_64=y
+--------
+    unsure whether to set this or not (5.13.1):
+    +CONFIG_INTEL_TCC_COOLING is not set
+    Enable this to support system cooling by adjusting the effective TCC                              │                                      │
+    activation temperature via the TCC Offset register, which is widely                               │                                      │
+    supported on modern Intel platforms.                                                              │                                      │
+     Note that, on different platforms, the behavior might be different                                │                                      │
+     on how fast the setting takes effect, and how much the CPU frequency                              │                                      │
+     is reduced.
+--------
+    why did this get reset from 5.12.13 to 5.13.1:
+    -CONFIG_SND_HDA_PREALLOC_SIZE=4096
+    +CONFIG_SND_HDA_PREALLOC_SIZE=0
+
+    ok so this is apparently because that config option is only visible if '! UML' and UML is currently 'unknown' symbol and is an arch like ./arch/um/Kconfig:5:config
+    so this makes it invisible, as per rule: 
+    Symbol: UML [=UML]
+    Type  : unknown
+
+    Symbol: SND_HDA_PREALLOC_SIZE [=0]
+    Type  : integer
+    Range : [0 32768]
+    Defined at sound/hda/Kconfig:23
+    Prompt: Pre-allocated buffer size for HD-audio driver
+    Depends on: SOUND [=y] && !UML && SND [=y]
+    Visible if: SOUND [=y] && !UML && SND [=y] && !SND_DMA_SGBUF [=y]
+    Location: -> Device Drivers -> Sound card support (SOUND [=y]) -> Advanced Linux Sound Architecture (SND [=y])
+--------
+    see if to set CONFIG_GENTOO_KERNEL_SELF_PROTECTION or not, new in 5.13.1(or some version after 5.12.13)
+--------
+    figure out what generates this spam, so far I'm only able to tell that DEBUG is set (not CONFIG_DEBUG) and that's why dev_dbg() has teeth
+but DEBUG is used in many other places, however in include/linux/dev_printk.h #elif defined(DEBUG)  ... #define dev_dbg(dev, fmt, ...)  that's what makes it have teeth
+I'm attempting workaround for now:
+#elif defined(DEBUG) && !defined(__LINUX_USB_H)                                                                                                                   
+it may not work, we'll see.
+
+These start happening after running Android Studio btw.
+
+[ 5484.893781] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-10 status  = 0xe0002a0
+[ 5484.893784] hub 2-0:1.0: hub_suspend
+[ 5484.893786] usb usb2: bus auto-suspend, wakeup 1
+[ 5484.893827] xhci_hcd 0000:00:14.0: xhci_hub_status_data: stopping usb2 port polling
+[ 5485.888839] i2c i2c-1: NAK from device addr 0x50 msg #0
+[ 5485.892621] i2c i2c-0: NAK from device addr 0x50 msg #0
+[ 5485.893708] usb usb4: usb auto-resume
+[ 5485.893721] hub 4-0:1.0: hub_resume
+[ 5485.896334] i2c i2c-2: NAK from device addr 0x50 msg #0
+[ 5485.915516] xhci_hcd 0000:06:00.0: Get port status 4-1 read: 0x2a0, return 0x2a0
+[ 5485.915544] xhci_hcd 0000:06:00.0: Get port status 4-2 read: 0x2a0, return 0x2a0
+[ 5485.915596] usb usb3: usb auto-resume
+[ 5485.915610] hub 3-0:1.0: hub_resume
+[ 5485.915614] xhci_hcd 0000:06:00.0: Get port status 3-1 read: 0x2a0, return 0x100
+[ 5485.915618] hub 4-0:1.0: state 7 ports 2 chg 0000 evt 0000
+[ 5485.915627] xhci_hcd 0000:06:00.0: set port remote wake mask, actual port 4-1 status  = 0xe0002a0
+[ 5485.915637] xhci_hcd 0000:06:00.0: set port remote wake mask, actual port 4-2 status  = 0xe0002a0
+[ 5485.915640] hub 4-0:1.0: hub_suspend
+[ 5485.915643] usb usb4: bus auto-suspend, wakeup 1
+[ 5485.915649] xhci_hcd 0000:06:00.0: Get port status 3-2 read: 0x2a0, return 0x100
+[ 5485.915655] xhci_hcd 0000:06:00.0: xhci_hub_status_data: stopping usb4 port polling
+[ 5485.915682] usb usb2: usb auto-resume
+[ 5485.915713] hub 2-0:1.0: hub_resume
+[ 5485.915715] hub 3-0:1.0: state 7 ports 2 chg 0000 evt 0000
+[ 5485.915718] hub 3-0:1.0: hub_suspend
+[ 5485.915721] usb usb3: bus auto-suspend, wakeup 1
+[ 5485.915729] xhci_hcd 0000:06:00.0: xhci_hub_status_data: stopping usb3 port polling
+[ 5485.937496] xhci_hcd 0000:00:14.0: Get port status 2-1 read: 0x2a0, return 0x2a0
+[ 5485.937536] xhci_hcd 0000:00:14.0: Get port status 2-2 read: 0x2a0, return 0x2a0
+[ 5485.937547] xhci_hcd 0000:00:14.0: Get port status 2-3 read: 0x2a0, return 0x2a0
+[ 5485.937588] xhci_hcd 0000:00:14.0: Get port status 2-4 read: 0x2a0, return 0x2a0
+[ 5485.937616] xhci_hcd 0000:00:14.0: Get port status 2-5 read: 0x2a0, return 0x2a0
+[ 5485.937625] xhci_hcd 0000:00:14.0: Get port status 2-6 read: 0x2a0, return 0x2a0
+[ 5485.937659] xhci_hcd 0000:00:14.0: Get port status 2-7 read: 0x2a0, return 0x2a0
+[ 5485.937668] xhci_hcd 0000:00:14.0: Get port status 2-8 read: 0x2a0, return 0x2a0
+[ 5485.937706] xhci_hcd 0000:00:14.0: Get port status 2-9 read: 0x2a0, return 0x2a0
+[ 5485.937714] xhci_hcd 0000:00:14.0: Get port status 2-10 read: 0x2a0, return 0x2a0
+[ 5485.937783] hub 2-0:1.0: state 7 ports 10 chg 0000 evt 0000
+[ 5485.937795] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-1 status  = 0xe0002a0
+[ 5485.937806] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-2 status  = 0xe0002a0
+[ 5485.937815] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-3 status  = 0xe0002a0
+[ 5485.937824] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-4 status  = 0xe0002a0
+[ 5485.937833] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-5 status  = 0xe0002a0
+[ 5485.937842] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-6 status  = 0xe0002a0
+[ 5485.937850] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-7 status  = 0xe0002a0
+[ 5485.937859] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-8 status  = 0xe0002a0
+[ 5485.937868] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-9 status  = 0xe0002a0
+[ 5485.937877] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-10 status  = 0xe0002a0
+[ 5485.937880] hub 2-0:1.0: hub_suspend
+[ 5485.937883] usb usb2: bus auto-suspend, wakeup 1
+[ 5485.937924] xhci_hcd 0000:00:14.0: xhci_hub_status_data: stopping usb2 port polling
+[ 5486.937902] usb usb4: usb auto-resume
+[ 5486.937929] hub 4-0:1.0: hub_resume
+[ 5486.959572] xhci_hcd 0000:06:00.0: Get port status 4-1 read: 0x2a0, return 0x2a0
+[ 5486.959666] xhci_hcd 0000:06:00.0: Get port status 4-2 read: 0x2a0, return 0x2a0
+[ 5486.959805] usb usb3: usb auto-resume
+[ 5486.959826] hub 3-0:1.0: hub_resume
+[ 5486.959840] xhci_hcd 0000:06:00.0: Get port status 3-1 read: 0x2a0, return 0x100
+[ 5486.959856] hub 4-0:1.0: state 7 ports 2 chg 0000 evt 0000
+[ 5486.959878] xhci_hcd 0000:06:00.0: set port remote wake mask, actual port 4-1 status  = 0xe0002a0
+[ 5486.959905] xhci_hcd 0000:06:00.0: set port remote wake mask, actual port 4-2 status  = 0xe0002a0
+[ 5486.959918] hub 4-0:1.0: hub_suspend
+[ 5486.959930] usb usb4: bus auto-suspend, wakeup 1
+[ 5486.959942] xhci_hcd 0000:06:00.0: xhci_hub_status_data: stopping usb4 port polling
+[ 5486.959954] xhci_hcd 0000:06:00.0: Get port status 3-2 read: 0x2a0, return 0x100
+[ 5486.960105] usb usb2: usb auto-resume
+[ 5486.960141] hub 2-0:1.0: hub_resume
+[ 5486.960155] hub 3-0:1.0: state 7 ports 2 chg 0000 evt 0000
+[ 5486.960169] hub 3-0:1.0: hub_suspend
+[ 5486.960185] usb usb3: bus auto-suspend, wakeup 1
+[ 5486.960198] xhci_hcd 0000:06:00.0: xhci_hub_status_data: stopping usb3 port polling
+[ 5486.981573] xhci_hcd 0000:00:14.0: Get port status 2-1 read: 0x2a0, return 0x2a0
+[ 5486.981661] xhci_hcd 0000:00:14.0: Get port status 2-2 read: 0x2a0, return 0x2a0
+[ 5486.981746] xhci_hcd 0000:00:14.0: Get port status 2-3 read: 0x2a0, return 0x2a0
+[ 5486.981829] xhci_hcd 0000:00:14.0: Get port status 2-4 read: 0x2a0, return 0x2a0
+[ 5486.981913] xhci_hcd 0000:00:14.0: Get port status 2-5 read: 0x2a0, return 0x2a0
+[ 5486.981997] xhci_hcd 0000:00:14.0: Get port status 2-6 read: 0x2a0, return 0x2a0
+[ 5486.982080] xhci_hcd 0000:00:14.0: Get port status 2-7 read: 0x2a0, return 0x2a0
+[ 5486.982164] xhci_hcd 0000:00:14.0: Get port status 2-8 read: 0x2a0, return 0x2a0
+[ 5486.982249] xhci_hcd 0000:00:14.0: Get port status 2-9 read: 0x2a0, return 0x2a0
+[ 5486.982315] xhci_hcd 0000:00:14.0: Get port status 2-10 read: 0x2a0, return 0x2a0
+[ 5486.982510] hub 2-0:1.0: state 7 ports 10 chg 0000 evt 0000
+[ 5486.982542] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-1 status  = 0xe0002a0
+[ 5486.982568] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-2 status  = 0xe0002a0
+[ 5486.982589] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-3 status  = 0xe0002a0
+[ 5486.982609] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-4 status  = 0xe0002a0
+[ 5486.982629] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-5 status  = 0xe0002a0
+[ 5486.982648] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-6 status  = 0xe0002a0
+[ 5486.982668] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-7 status  = 0xe0002a0
+[ 5486.982687] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-8 status  = 0xe0002a0
+[ 5486.982707] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-9 status  = 0xe0002a0
+[ 5486.982726] xhci_hcd 0000:00:14.0: set port remote wake mask, actual port 2-10 status  = 0xe0002a0
+--------
+SEE why: NVMe multipath support (NVME_MULTIPATH) [N/y/?] n
+maybe set to Y if worth it?
+--------
+see what are these and do I need them?
+  Pulse-Width Modulation (PWM) Support (PWM) [Y/n/?] y
+  PWM lowlevel drivers additional checks and debug messages (PWM_DEBUG) [N/y/?] n
+  Clock based PWM support (PWM_CLK) [N/m/y/?] (NEW) ?
+
+CONFIG_PWM_CLK:
+
+Generic PWM framework driver for outputs that can be
+muxed to clocks.
+
+To compile this driver as a module, choose M here: the module
+will be called pwm-clk.
+
+Symbol: PWM_CLK [=n]
+Type  : tristate
+Defined at drivers/pwm/Kconfig:143
+  Prompt: Clock based PWM support
+  Depends on: PWM [=y] && (HAVE_CLK [=y] || COMPILE_TEST [=n])
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Pulse-Width Modulation (PWM) Support (PWM [=y])
+
+
+
+  Clock based PWM support (PWM_CLK) [N/m/y/?] (NEW) n
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+
+--------------
+// KEEP THIS LAST!
+// thanks <telemachus> on #vim freenode irc, for a filetype that's not .c or .cpp which ale would yell/error on:
+// vim: set ft=javascript:

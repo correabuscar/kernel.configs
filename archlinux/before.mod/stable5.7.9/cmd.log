@@ -1,0 +1,81 @@
+patches applied:
+on both Z575 and i87k:
+
+"1700_enable-thinkpad-micled.patch::http://sources.gentoo.org/cgi-bin/viewvc.cgi/linux-patches/genpatches-2.6/trunk/3.15/1700_enable-thinkpad-micled.patch"
+acpi_no_spam_when_read_sensors.patch
+dontdiff_update.patch
+prevent_blackscreen_due_to_lacking_fbcon.patch
+#1000_increase_scrollback_buffer_size_from_1024_to_4096_or_kernel_page_size.patch  #FIXME: temporarily disabled because cannot be cleanly applied in 4.11-rc5, worked in prev. aka tag=v4.10
+#1200_persistent_scrollback_buffer.patch #FIXME: same as above
+#2300_DDEBUG_for_the_entire_acpi_folder.patch
+2200_fbcon_state_allocated_scrollbackbuffer.patch
+2500_lei8042.patch
+2600_whichbug.patch
+2700_isitnull.patch
+2800_anotherNULLandpanic.patch
+2900_prevent_dmesg_spam_from_preempt_notifier_2.patch #in kernel 4.17
+3200_amd_errata_665.patch
+3300_bug_119571.patch
+sync_cache_debug_and_disable_stopdisk.patch #TODO: see if this is needed on i87k too!
+showtrace_when_ohcifail.patch
+more_ohci_trace.patch
+ohci_info.patch #getting spam with kernel 4.13 ! (not with 4.12 tho)
+letmesee_usb_messages_like_from_ohci_dbg.patch
+bc_futureproof.patch
+show_me_device_shutdowns.patch
+keypad_enter_in_nconfig.patch
+cpuinfo_cur_freq_normal_ro.patch
+boris3of2.patch #for debug; will still keep
+boris4of2.patch #for more info on dmesg, microcode-related; will still keep
+showme_nvmem_errors.patch
+le9h.patch #same, but customizable, rev4 now
+vmstat_extra_dev_info.patch
+nconf_noinfiniteloop.patch
+note_about_CONFIG_RD_XZ.patch
+instruction_not_supported_in_16bit_mode.patch #only happens on i87k (not Z575) for obvious reasons! this doesn't seem necessary? on gentoo's 5.7.9 at least!
+eaton5e_usb_ups.patch
+#use_governor_teo_directly.patch #currently switched to menu, so not using 'teo' for now, due to https://bugzilla.kernel.org/show_bug.cgi?id=203833#c1
+btrfs_zstd_default_level.patch
+showme_modepage_when_showing_writecache_state.patch
+longer_printk_lines.patch
+drop_caches_should_also_allow_7.patch
+ipv6sender_warnmorethanonce.patch
+compaction_info.patch
+enable_additional_cpu_optimizations_for_gcc_v9.1+_kernel_v5.7+.patch #for git
+0110-Initialize-ata-before-graphics.patch #from clearlinux https://github.com/clearlinux-pkgs/linux/blob/c4a6d0b12ce324e5c64e3164de833f1013bd5fc5/0110-Initialize-ata-before-graphics.patch#L1
+deny_lseek_past_EOF_when_O_APPEND.patch
+
+on Z575 only:
+2000_bios_usb_legacy_Lenovo_Z575_avoid_CPU_Not_Responding.patch
+2100_DIScrete_gfx_card_systemfreeze.patch
+radeon_thermal.patch
+3150_kernel_undervolting.patch
+NIC_replug_reminder.patch #just in case you either apply NIC_replug.patch twice(because 5.5.5 already has it, and patch will apply it either way!) or you forgot to apply it!
+
+
+before build:
+
+yes "" | make config >/dev/null
+make prepare
+
+
+CFLAGS='-pipe -march=native -Wno-trigraphs -fno-schedule-insns2 -fno-delete-null-pointer-checks -mtune=native -fomit-frame-pointer -O2 -D_FORTIFY_SOURCE=2 -DQT_FORCE_ASSERTS -ggdb -rdynamic'
+
+CPPFLAGS='-pipe -march=native -Wno-trigraphs -fno-schedule-insns2 -fno-delete-null-pointer-checks -mtune=native -fomit-frame-pointer -O2 -D_FORTIFY_SOURCE=2 -DQT_FORCE_ASSERTS -ggdb -rdynamic'
+
+CXXFLAGS='-pipe -march=native -Wno-trigraphs -fno-schedule-insns2 -fno-delete-null-pointer-checks -mtune=native -fomit-frame-pointer -O2 -D_FORTIFY_SOURCE=2 -DQT_FORCE_ASSERTS -ggdb -rdynamic'
+
+EXTRA_CFLAGS=' -D_FORTIFY_SOURCE=0 -Wno-trigraphs -fno-schedule-insns2 -fno-delete-null-pointer-checks  -fomit-frame-pointer  -O2 -march=native -mtune=native'
+
+extraEXTRA_CFLAGS=' -fomit-frame-pointer '
+
+MAKEFLAGS='-j6 --no-keep-going '
+
+/usr/bin/makepkg:709+ make -j6 --no-keep-going 'EXTRA_CFLAGS=  -D_FORTIFY_SOURCE=0 -Wno-trigraphs -fno-schedule-insns2 -fno-delete-null-pointer-checks  -fomit-frame-pointer  -O2 -march=native -mtune=native' V=0 LOCALVERSION= bzImage modules
+
+
+NOTE: must NOT use -fomit-frame-pointer when CONFIG_TRACEPOINTS=y or else "-pg conflicts with -fomit-frame-pointer", ie. `gcc: error: -pg and -fomit-frame-pointer are incompatible`
+
+
+there's a last build command as:
+make headers_check

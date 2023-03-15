@@ -1,0 +1,4 @@
+this one was the result of copying over the i87k one to z575, so some z575 settings were lost like:
+CONFIG_FAT_DEFAULT_IOCHARSET="iso8859-1"
+^ on z575, became the value "ascii" from i87k!
+

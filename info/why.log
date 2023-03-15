@@ -1,0 +1,3825 @@
+--------------
+don't set:
+CONFIG_SCHED_THERMAL_PRESSURE
+because:
+"The thermal pressure is always 0 on non-ARM platforms."
+src: https://bugs.archlinux.org/task/66866
+--------------
+CONFIG_CPU_ISOLATION=y
+this is probably unused unless I set "isolcpus=" boot parameter, or is it "cpuset.isolcpus=" ?
+--------------
+CONFIG_NUMA_BALANCING=n
+because there's only 1 node? on both laptop and desktop! mehnvmTODO: I'm probably misunderstanding this and thus numactl can be used to create more nodes, even on the network...
+* time emerge -nav sys-process/numactl
+  * numactl --hardware
+    \ well, there's only 1 node (12 cpus)
+kernel cmdline:
+numa_balancing=disable numa=off
+src: https://stackoverflow.com/questions/27250034/numa-balancer-in-linux
+
+ALSO disabled then: CONFIG_NUMA aka " Enable NUMA (Non-Uniform Memory Access) support."
+src: https://unix.stackexchange.com/questions/92302/enabling-numa-for-intel-core-i7#134151
+--------------
+maybe I want this but not now:
+CHECKPOINT_RESTORE=n
+src: https://stackoverflow.com/questions/2134771/how-to-hibernate-a-process-in-linux-by-storing-its-memory-to-disk-and-restorin/24991425#24991425
+--------------
+TODO: look into CONFIG_BOOT_CONFIG (currently =n)
+Extra boot config allows system admin to pass a config file as
+complemental extension of kernel cmdline when booting.
+The boot config file must be attached at the end of initramfs
+with checksum, size and magic word.
+See <file:Documentation/admin-guide/bootconfig.rst> for details.
+--------------
+CONFIG_X86_X2APIC=y
+actually, it's ok to have this on CPUs that don't have this too!
+it's listed /proc/cpuinfo if you have it, as: x2apic
+--------------
+CONFIG_RETPOLINE=n
+this is unsafe, so only use this when mitigations=off (kernel cmdline) ie. want speed! otherwise, remember to set this to =y !
+when =y, "The kernel may run slower."
+
+disable for speed, enable for security
+doneTODO: it's currently CONFIG_RETPOLINE=y //and mitigations=2 in /etc/default/grub
+now it's CONFIG_RETPOLINE=n  for 5.18.16
+--------------
+CONFIG_X86_AMD_PLATFORM_DEVICE=n
+"... found on AMD Carrizo and later chipsets." (src: make nconfig, F2)
+"The Excavator-based APU for mainstream applications is called Carrizo and was released in 2015."
+src: https://en.wikipedia.org/wiki/Excavator_(microarchitecture)
+--------------
+CONFIG_PERF_EVENTS_AMD_POWER=y
+should be =n because it mentions AMD family 15h and I've only 12h!
+but unsure if that's 15h+ that it needs for this, or it only says that one thing about 15h as an extra.
+--------------
+CONFIG_X86_SMAP
+performance cost when this is enabled!
+exists only on intel, ie. cat /proc/cpuinfo |grep smap
+enable for security, disable for speed
+--------------
+CONFIG_X86_INTEL_TSX_MODE_*
+aka tsx= on kernel cmdline
+Intel's TSX (Transactional Synchronization Extensions) feature...
+set this on =auto and thus it will only be enabled when believed to be safe and not side-channel expoitable.
+
+improves performance when enabled!
+disable for security, enable for speed
+--------------
+CONFIG_EFI=n
+because using only MBR boot on all devices!
+
+--------------
+CONFIG_HZ_* can affect performance
+now at CONFIG_HZ_1000, but CONFIG_HZ_100 will be faster in thoughput but slower in response to events!
+--------------
+CONFIG_MODIFY_LDT_SYSCALL=n
+keep on n because DOSEMU, oh wait, DOSBOX actually, does run without this; i guess dosemu doesn't as they say.
+Either way, disabling this increases performance and security!
+--------------
+CONFIG_WQ_POWER_EFFICIENT_DEFAULT=n
+this is n for speed, even tho kernel arg workqueue.power_efficient can still be used to enable this
+
+--------------
+CONFIG_ACPI_TABLE_UPGRADE=y but unsure if it should be, for security
+see(not seen yet) Documentation/admin-guide/acpi/initrd_table_override.rst
+
+similarily, perhaps, CONFIG_ACPI_CONFIGFS=n
+that may allow modifying APCI ?
+--------------
+CONFIG_ACPI_DEBUG=n  but was =y on Z575, =n on i87k
+--------------
+CONFIG_X86_PCC_CPUFREQ=n aka Processor Clocking Control interface driver
+but check to see what this does, allows what on intel processors?
+--------------
+CONFIG_GCC_PLUGIN_LATENT_ENTROPY=n
+it's =n for speed, set to =y for increased security I guess
+exactly the same for CONFIG_GCC_PLUGIN_RANDSTRUCT=n
+--------------
+TODO: see if we wanna keep this CONFIG_UNUSED_SYMBOLS=y
+or just set it to =n
+but then if =n, see if the new option CONFIG_TRIM_UNUSED_KSYMS should be =y or =n
+I'm mainly wondering if some symbols are added such as I dno, build-time CFGLAGS(if that's the way they're added), and also the need to build out of tree modules(as F2 mentions)...
+
+so, keeping =y for now...
+--------------
+CONFIG_RESERVE_ACTIVEFILE_KBYTES=
+305536 for Z575
+705536 for i87k
+--------------
+for a guest kernel, I should enable these(at least!):
+MEMORY_HOTPLUG
+CONFIG_PAGE_REPORTING
+CONFIG_KSM
+CONFIG_KVM_GUEST ? "Linux guest support"
+and on host, probably the KVM stuff! (so that ie. virtualbox can use it)
+--------------
+set CONFIG_DEFAULT_MMAP_MIN_ADDR=32768 to make it ARM/other_arches proof!
+else it would be 65536
+was 4096 on Z575 ... I don't remember how much on i87k (I think it was 65536 !)
+doneTODO: it has been temp-set back to 4096 !
+--------------
+CONFIG_STATIC_USERMODEHELPER=n
+this should be =n always, I don't remember why exacly, maybe if =y it can't boot at all, or can't load any modules, forgot.
+--------------
+For increased security but less speed set the following instead of CONFIG_INIT_STACK_NONE:
+CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL=y
+CONFIG_GCC_PLUGIN_STACKLEAK=y (see also the related: CONFIG_PAGE_POISONING=y with page_poison=1 on kernel cmdline, to poison pages after free()!)
+CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y
+CONFIG_INIT_ON_FREE_DEFAULT_ON=y
+they are =n currently, for speed
+TODO: currently 05 aug 2020, I've set these: CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL, CONFIG_GCC_PLUGIN_STACKLEAK, CONFIG_STACKLEAK_METRICS, CONFIG_INIT_ON_ALLOC_DEFAULT_ON, CONFIG_INIT_ON_FREE_DEFAULT_ON (maybe also set CONFIG_STACKLEAK_RUNTIME_DISABLE so you can disable it at runtime to see any difference in speed?)
+--------------
+CONFIG_PCIEASPM_POWER_SUPERSAVE was set on Z575, but now both i87k and Z575 have "BIOS default" aka CONFIG_PCIEASPM_DEFAULT  because I wanna make sure i87k retains the BIOS settings for it!(those L1 L2 things)
+for now! TODO: review this sometime!
+--------------
+CONFIG_PCI_DEBUG=y, but was =n on Z575
+TODO: maybe set to =n again?
+--------------
+CONFIG_UEVENT_HELPER=n
+was =y on Z575(archlinux systemd), and =n on i87k (gentoo openrc)
+now setting to =n
+
+--------------
+have this on Z575:
+CONFIG_EXTRA_FIRMWARE="radeon/SUMO_me.bin radeon/SUMO_pfp.bin radeon/SUMO_rlc.bin radeon/SUMO_uvd.bin radeon/TURKS_mc.bin radeon/TURKS_me.bin radeon/TURKS_pfp.bin radeon/TURKS_smc.bin radeon/BTC_rlc.bin rtl_nic/rtl8105e-1.fw"
+CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware"
+
+but they are empty on i87k, hmm... do I need those for fbcon or radeon on bootup? or are they gonna be inside the initramfs?
+yeah I need them, or else screen freezes with text, even though underneath everything still works! so I can't see anything new without these!
+
+fail //now set to empty on Z575 too! still on archlinux+systemd, will test.
+doneTODO: I've restored these on Z575, to see if it boots now (was kernel panic) it was something else, it was memory_corruption_check_size=1M kernel arg which caused the panic! but still need these blobs inside kernel!
+--------------
+CONFIG_PNP_DEBUG_MESSAGES
+was =n, now =y for testing TODO: set back to =n ?
+--------------
+CONFIG_X86_SYSFB was =n on both systems
+I've set it to =y and it's either because of this or for some other reason(no binary firmware blobs for videocard in kernel?) why I can't boot now... kernel panic!
+this is not the reason!
+doneTODO: put this back to =y I guess; after it boots properly!
+--------------
+ok, for safety enable CONFIG_STACKPROTECTOR and CONFIG_STACKPROTECTOR_STRONG
+for speed, disable them!
+--------------
+CONFIG_ARCH_MMAP_RND_BITS was 32 on i87k and 28 on Z575 (range 28->32)
+CONFIG_ARCH_MMAP_RND_COMPAT_BITS was 16 on i87k and 8 on Z575 (range 8->16)
+now both at 32/16
+--------------
+RANDOMIZE_MEMORY_PHYSICAL_PADDING=0x0
+should be 0x0 unless MEMORY_HOTPLUG is set which shouldn't be set for any kernel unless a kernel is supposed to run inside a VM eg. virtualbox
+
+config RANDOMIZE_MEMORY_PHYSICAL_PADDING
+  hex "Physical memory mapping padding" if EXPERT
+  depends on RANDOMIZE_MEMORY
+  default "0xa" if MEMORY_HOTPLUG
+  default "0x0"
+  range 0x1 0x40 if MEMORY_HOTPLUG
+  range 0x0 0x40
+  ---help---
+     Define the padding in terabytes added to the existing physical
+     memory size during kernel memory randomization. It is useful
+     for memory hotplug support but reduces the entropy available for
+     address randomization.
+
+     If unsure, leave at the default value.
+
+--------------
+CONFIG_X86_RESERVE_LOW has a range of 4 to 640 (KiB) - oh wait this is something else! it's memory reserved for BIOS! which is 64K set in .config, which is good!
+
+Anyway with memory_corruption_check_size= kernel arg, I can't use =620K or more because it will panic with "Real mode trampoline was not allocated" or (if using panic_earlier.patch it will panic with "No sub-1M memory is available for the trampoline"
+however with =550K it works! I didn't test anything else inbetween yet!
+ok I tested, 600K works, 605K doesn't! it only needs 0x6000 bytes aligned to PAGE_SIZE aka 4096 bytes, in range of 0->1M and it for some reason cannot find one if over =605K
+--------------
+//NOTE: 07june2022: KVM is needed for Android Studio Emulator to work! see https://wiki.gentoo.org/wiki/QEMU
+//old:
+for KVM stuff, don't forget CONFIG_VIRTIO_BLK for virtio, wtw...
+and CONFIG_VIRTIO_CONSOLE
+CONFIG_HW_RANDOM_VIRTIO
+and CONFIG_PVPANIC, for QEMU(aka KVM stuff)
+CONFIG_DRM_VIRTIO_GPU
+CONFIG_DRM_VBOXVIDEO (seems to be needed only for when within the guest OS right?)
+is this needed?:
+  PTP_1588_CLOCK_KVM KVM virtual PTP clock (for within guest OS! ie. if gentoo is inside the guest os, not on host!)
+  X86_SGX_KVM Software Guard eXtensions (SGX) Virtualization
+  DRM_I915_GVT_KVMGT Enable KVM/VFIO support for Intel GVT-g
+  ^ needs VFIO_MDEV && VFIO_MDEV_DEVICE
+  CONFIG_DRM_I915_GVT: Enable Intel GVT-g graphics virtualization host support
+--------------
+CONFIG_TIFM_CORE was M on i87k, but none on Z575, maybe it got set as M by default when it was added as new option on newer kernels?
+I don't think I need it though.
+doneTODO: remove it if all USB stuffs work ok
+//for now =y (because not using =M for anything currently)
+=n now! 'cause I was most likely right
+--------------
+if using tlp, take note that the default SATA Link Power Management(LPM) is selected by CONFIG_SATA_MOBILE_LPM_POLICY which is =3 currently (Medium power with Device Initiated PM enabled)
+technically only for laptop (they say)
+--------------
+not needed but set:
+CONFIG_ATA_GENERIC
+CONFIG_PATA_ACPI
+CONFIG_PATA_MPIIX (was on only on i87k) - maybe used in virtualbox?
+CONFIG_PATA_SCH
+CONFIG_PATA_OLDPIIX
+CONFIG_PATA_AMD
+--------------
+TODO: see how to use this to log dmesg over network:
+CONFIG_NETCONSOLE
+not enabling this for security: CONFIG_NETCONSOLE_DYNAMIC
+--------------
+TCG_INFINEON
+TCG_TIS_I2C_INFINEON
+have this on laptop! as "Infineon TPM SLB9635" (according to 'sudo hwmon' on archlinux, aka SMBIOS)
+--------------
+not needed but enabling them anyway:
+CONFIG_8139CP
+CONFIG_8139TOO
+--------------
+unsure if needed, was only on i87k:
+CONFIG_FIXED_PHY
+--------------
+TODO: see what other PHYs I need to enable ... for i87k at least.
+--------------
+TODO: maybe remove CONFIG_PPP , currently kept as =M
+--------------
+TODO: enable this to debug/see events on syslog: CONFIG_INPUT_EVBUG
+--------------
+leaving CONFIG_INPUT_PCSPKR=m aka pcspkr so I can blacklist it or something.
+--------------
+CONFIG_SERIO_SERPORT is not needed and was =M, but now setting to =y
+--------------
+looks like CONFIG_SERIO_RAW is used on Z575, but maybe's because I ran 'sudo hwinfo' ?
+--------------
+TODO: do I need this for anything (since CMA=y elsewhere): CONFIG_DMA_CMA
+was =n before.
+--------------
+increase security and cause performance DEGRADATION: CONFIG_DMA_API_DEBUG
+
+--------------
+TODO: should probably put this(and next option) back to as =M for CONFIG_SERIAL_8250_PCI  and CONFIG_SERIAL_8250_EXAR
+--------------
+CONFIG_NVRAM was =M, possibly used for CMOS access?
+for security disable this
+
+This memory is conventionally called "NVRAM" on PowerPC machines,
+"CMOS RAM" on PCs, "NVRAM" on Ataris and "PRAM" on Macintoshes.
+
+--------------
+both of these should be disabled:
+CONFIG_RANDOM_TRUST_CPU
+CONFIG_RANDOM_TRUST_BOOTLOADER
+--------------
+i2c_piix4 module(previously, now =y) was from CONFIG_I2C_PIIX4 and apparently used on Z575(ie. AMD Hudson-2 ?) by "AMD FCH SMBus Controller" (was activated(ie. modprobed) by 'sudo hwinfo', on archlinux)
+00:14.0 SMBus: Advanced Micro Devices, Inc. [AMD] FCH SMBus Controller (rev 13)
+
+--------------
+debugging stuff is enabled, TODO: maybe disable?
+CONFIG_I2C_DEBUG_CORE
+CONFIG_I2C_DEBUG_ALGO  (this may be related to i915, as lsmod shows i2c_algo_bit is loaded/used by i915, but no idea what kernel config option is using that)
+CONFIG_I2C_DEBUG_BUS
+--------------
+CONFIG_SPI was =n but it may be needed on i87k for more temperature sensors ?
+trying =y and TODO: selecting some subs
+--------------
+CONFIG_PINCTRL_AMD was =n, now set to =Y
+TODO: do I need this?
+--------------
+TODO: some pinctrl from "Pin controllers" in "Device Drivers" I most definitely don't need and were modules(not loaded on i87k), so I should probably =n them, currently they're set to =y
+--------------
+TODO: maybe set CONFIG_DEBUG_GPIO=y to see some debug messages? currently =n
+--------------
+//CONFIG_GPIO_IT87=y (was =m on i87k) , used by i87k temperature sensors?
+//TODO: already =y for CONFIG_GPIO_WINBOND, but unsure if it's used on i87k (check with the Reports?)
+//i87k:
+//[    1.563114] gpio_it87: no device
+//[    1.563308] gpio_winbond: chip ID at 2e is d121
+//[    1.563465] gpio_winbond: not an our chip
+//[    1.563662] gpio_winbond: chip ID at 4e is ffff
+//[    1.563818] gpio_winbond: not an our chip
+//
+//Z575:
+//[    1.889530] gpio_it87: no device
+//[    1.889617] gpio_winbond: chip ID at 2e is ffff
+//[    1.889677] gpio_winbond: not an our chip
+//[    1.889747] gpio_winbond: chip ID at 4e is fc11
+//[    1.889807] gpio_winbond: not an our chip
+now both =n
+--------------
+on both:
+[    1.893715] acpiphp_ibm: ibm_acpiphp_init: acpi_walk_namespace failed
+--------------
+CONFIG_SENSORS_CORETEMP=y is definitely used for i87k temperature sensor!
+--------------
+enabling (=y) these but they're not needed:
+CONFIG_POWER_RESET
+CONFIG_POWER_RESET_RESTART
+--------------
+trying CONFIG_SENSORS_IT87=y (was =n)
+to see if getting any extra sensors? TODO: undo if no good
+also CONFIG_SENSORS_NCT6775=y (and in another place)
+[    2.191627] nct6775: Found NCT6793D or compatible chip at 0x2e:0x290
+on i87k
+
+//also CONFIG_IT87_WDT (that's watchdog)
+//i87k:
+//[    2.192358] it87_wdt: no device
+//Z575:
+//[    2.922977] it87_wdt: no device
+=====> thus now set to =n
+--------------
+CONFIG_CLOCK_THERMAL and CONFIG_DEVFREQ_THERMAL were =n on Z575, =y on i87k
+now setting both to =y but TODO: check to see what they're about, maybe don't need them!
+--------------
+read help info for CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
+that auto-reboot when this is =n, is interesting, if system doesn't boot fast enough.
+--------------
+CONFIG_MEDIA_SUBDRV_AUTOSELECT was =n on Z575, and =y on i87k
+now =y
+CONFIG_DRM_LOAD_EDID_FIRMWARE was =y on i87k, =n on Z575
+--------------
+probably not needed:
+CONFIG_DRM_I2C_NXP_TDA998X
+DRM_I2C_NXP_TDA9950
+--------------
+CONFIG_DRM_I915_FORCE_PROBE was "*", now set to ""
+--------------
+unsure if needed CONFIG_DRM_VGEM for mesa, it's =M now
+--------------
+CONFIG_FIRMWARE_EDID was =y for this on Z575, but =n on i87k
+set to =n if experiencing longer boot delays before you see anything on screen
+now set to =n on Z575 too!
+--------------
+CONFIG_SND_SUPPORT_OLD_API was =y in Z575, but =n in i87k
+set now to =y
+--------------
+CONFIG_HID_RMI was =n on both, but now set to =y just in case
+"Synaptics RMI4 device support"
+have synapctics touchpad but never needed this before!
+--------------
+=sys-kernel/linux-headers-5.7  (on gentoo) while having =gentoo-sources-5.7.10
+is ok to build the kernel
+"you can compile glibc against any kernel headers version you
+like.  as long as the kernel is not older than the value passed to the configure
+flag --enable-kernel, you should be fine.
+" src: https://sourceware.org/legacy-ml/libc-help/2014-11/msg00024.html
+
+--enable-kernel is 3.2.0 currently for glibc-2.31-r6
+also no problem using newer kernels without recompiling old glibc
+--------------
+probably don't need this but was =y on Z575, =n on i87k
+CONFIG_USB_OTG
+"Select this only if your board has Mini-AB/Micro-AB connector."
+i don't have that... so i dno.
+
+CONFIG_EXTCON_INTEL_INT3496 was =n but maybe it's a thing on i87k ?
+it's related to USB OTG
+--------------
+note:
+CONFIG_USB_AUTOSUSPEND_DELAY is set =2 (seconds)
+can be overriden at kernel cmdline: usbcore.autosuspend=
+--------------
+TODO: looks like I can capture USB traffic via CONFIG_USB_MON=y or =M
+TODO: try it for mouse!
+=n for now!
+--------------
+serial console over usb or wut? see CONFIG_USB_XHCI_DBGCAP
+=n for now
+(hmm maybe CONFIG_USB_XHCI_DBGCAP=n is like CONFIG_USB_SERIAL_DEBUG=n)
+
+apparently not needed? because the one for console over usb is CONFIG_USB_SERIAL_CONSOLE=y  and needs "console=ttyUSB0" for this to work(good for looking at early panics ?).
+
+  you'll also want CONFIG_MAGIC_SYSRQ_SERIAL=y if you've serial console of some kind, i think.
+
+  see also:
+  CONFIG_EARLY_PRINTK_DBGP
+  CONFIG_EARLY_PRINTK_USB_XDBC
+--------------
+this was =n on Z575, CONFIG_USB_EHCI_TT_NEWSCHED=y now
+if =n I may get "ENOSPC" or "-28" errors and low usb transfer speeds
+--------------
+not needed but added it just in case: CONFIG_USB_SERIAL_SIMPLE=y (=y because we don't wanna use =M anymore)
+--------------
+TODO: see which LEDs I can use and how on Z575 in /sys/class/leds  and something may need to be added/compiled in kernel.
+--------------
+CONFIG_IDEAPAD_LAPTOP was =n but we now try =y
+however I get the feeling that this had no effect before? hence why it got =n -ed
+--------------
+CONFIG_INTEL_HID_EVENT was =n before, but setting this for T400, since it's for laptops only!
+same for CONFIG_INTEL_VBTN
+--------------
+CONFIG_I2C_MULTI_INSTANTIATE was =n on Z575, and =M on i87k
+--------------
+CONFIG_INTEL_UNCORE_FREQ_CONTROL=n but this would otherwise allow me to control frequency limits of uncore aka RING/LLC (last-level cache) clocks
+--------------
+CONFIG_INTEL_PUNIT_IPC=y but don't know if needed!
+--------------
+CONFIG_AMD_IOMMU=n should remain this way because for sure I remember it's nothing on Z575!
+--------------
+somethign about VMs, because VT-d is mentioned, for CONFIG_INTEL_IOMMU_SCALABLE_MODE_DEFAULT_ON
+keeping =n for now
+--------------
+this doesn't seem wise(to enabled): CONFIG_INTEL_IOMMU_SVM
+was =n by default, apparently,
+already set =y by i87k, keeping it...
+--------------
+CONFIG_REMOTEPROC was =n on both Z575 and i87k, however setting it to =y now, just in case got some DSP coprocessors somehow... somewhere...
+--------------
+TODO: do I ever need this? CONFIG_PM_DEVFREQ_EVENT
+how does one use devfreq and where is it?
+--------------
+TODO: is this related to eMMC card reader thingies? "Intel EMMC PHY" CONFIG_PHY_INTEL_EMMC=n; got renamed to CONFIG_PHY_INTEL_LGM_EMMC in 5.10.1 compared to 5.9.14
+--------------
+TODO: find out how to monitor the limits and whether or not they are enforced: CONFIG_INTEL_RAPL
+--------------
+CONFIG_LIBNVDIMM is =n for now, but may be used on i87k?
+--------------
+unsure but I think CONFIG_CRYPTO_DEV_CCP is =n because Z575 doesn't support those! (ccp, psp, tee ...)
+--------------
+TODO: look into enabling and using overlay filesystem(s): CONFIG_OVERLAY_FS
+=n for now
+--------------
+WARNING: never select CONFIG_NTFS_FS , so leave it at =n
+on ArchLinux this package was used to FUSE mount any NTFS filesystems: extra/ntfs-3g 2017.3.23-4 [installed]
+--------------
+TODO: wtf is this (for?): CONFIG_UNICODE=n
+--------------
+TODO: see /etc/modprobe.d/blacklist-backlight.conf whereby the following kernel Modules were blacklisted(for good reason, from back in the day):
+contents of that file are:
+blacklist ideapad_laptop
+blacklist thinkpad_acpi
+blacklist nvram
+blacklist rfkill
+blacklist led_class
+#led_class               5565  1 rtsx_usb_sdmmc
+#that is: led_class is used by rtsx_usb_sdmmc which is internal card reader of Z575 laptop
+
+--------------
+doneTODO: unset CONFIG_USB_STORAGE_DEBUG, it's =y now because of CONFIG_MMC_REALTEK_USB which was =y ...
+--------------
+WARNING: CONFIG_MMC_REALTEK_USB=M should be =M instead of =y (maybe also CONFIG_MEMSTICK_REALTEK_USB=M, did it but dno if it's also needed!) or else it will hang a kworker and prevent poweroff (also sysrq+o will have no effect, but sysrq+b will reboot fine).
+I think this is because of my auto-eject rule for this device, in /etc/udev/rules.d/84-cardreader.rules
+  Hang like this:
+[   69.723625] systemd-udevd[251]: 2-1: Worker [285] processing SEQNUM=3238 is taking a long time
+[   70.989595] INFO: task kworker/u8:5:208 blocked for more than 36 seconds.
+[   70.989603]       Tainted: G          I       5.7.10-g780e72b00545 #141
+[   70.989606] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   70.989608] kworker/u8:5    D    0   208      2 0x80004000
+[   70.989620] Workqueue: kmemstick memstick_check
+[   70.989622] Call Trace:
+[   70.989627]  ? __schedule+0x243/0x6a0
+[   70.989629]  ? schedule+0x45/0xc0
+[   70.989631]  ? schedule_timeout+0xbb/0x100
+[   70.989634]  ? kobject_set_name_vargs+0x6d/0xa0
+[   70.989636]  ? dev_set_name+0x4e/0x80
+[   70.989638]  ? wait_for_completion+0x81/0xe0
+[   70.989639]  ? memstick_check+0x11f/0x340
+[   70.989642]  ? process_one_work+0x1a2/0x300
+[   70.989644]  ? worker_thread+0x48/0x3e0
+[   70.989645]  ? rescuer_thread+0x400/0x400
+[   70.989647]  ? kthread+0x115/0x140
+[   70.989648]  ? kthread_associate_blkcg+0xa0/0xa0
+[   70.989650]  ? ret_from_fork+0x1f/0x30
+[   70.989661] INFO: task systemd-udevd:285 blocked for more than 36 seconds.
+[   70.989662]       Tainted: G          I       5.7.10-g780e72b00545 #141
+[   70.989663] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   70.989664] systemd-udevd   D    0   285    251 0x00000100
+[   70.989666] Call Trace:
+[   70.989668]  ? __schedule+0x243/0x6a0
+[   70.989669]  ? schedule+0x45/0xc0
+[   70.989671]  ? schedule_timeout+0xbb/0x100
+[   70.989672]  ? _cond_resched+0x11/0x40
+[   70.989674]  ? start_flush_work.constprop.0+0x54/0x1a0
+[   70.989675]  ? wait_for_completion+0x81/0xe0
+[   70.989677]  ? flush_workqueue+0x118/0x420
+[   70.989679]  ? memstick_remove_host+0x10/0x80
+[   70.989680]  ? rtsx_usb_ms_drv_remove+0x7f/0xe0
+[   70.989682]  ? platform_drv_remove+0x19/0x40
+[   70.989684]  ? __device_release_driver+0x154/0x200
+[   70.989685]  ? device_release_driver+0x1f/0x40
+[   70.989686]  ? bus_remove_device+0xca/0x120
+[   70.989688]  ? device_del+0x167/0x3e0
+[   70.989690]  ? kmem_cache_free+0x23c/0x260
+[   70.989692]  ? platform_device_del.part.0+0xe/0x60
+[   70.989694]  ? devm_mfd_dev_release+0x20/0x20
+[   70.989695]  ? platform_device_unregister+0x1b/0x40
+[   70.989697]  ? mfd_remove_devices_fn+0x35/0x40
+[   70.989698]  ? device_for_each_child_reverse+0x55/0xa0
+[   70.989700]  ? rtsx_usb_disconnect+0x11/0x40
+[   70.989703]  ? usb_unbind_interface+0x80/0x280
+[   70.989704]  ? __device_release_driver+0x154/0x200
+[   70.989705]  ? device_release_driver+0x1f/0x40
+[   70.989706]  ? bus_remove_device+0xca/0x120
+[   70.989708]  ? device_del+0x167/0x3e0
+[   70.989709]  ? usb_disable_device.cold+0x3e/0x165
+[   70.989711]  ? usb_set_configuration+0x86/0x7c0
+[   70.989713]  ? __seccomp_filter+0x75/0x700
+[   70.989716]  ? __check_object_size+0x130/0x153
+[   70.989717]  ? remove_store+0x4e/0x60
+[   70.989720]  ? kernfs_fop_write+0xc6/0x1a0
+[   70.989721]  ? vfs_write+0xb1/0x1a0
+[   70.989723]  ? ksys_write+0x5d/0xe0
+[   70.989724]  ? do_syscall_64+0x3d/0x120
+[   70.989726]  ? entry_SYSCALL_64_after_hwframe+0x44/0xa9
+
+eventually:
+[  189.723694] systemd-udevd[251]: 2-1: Worker [285] processing SEQNUM=3238 killed
+
+but that doesn't stop it:
+[  212.584381] gpg-agent[1404]: handler 0x7df907aa3700 for fd 10 started
+[  212.593290] gpg-agent[1404]: handler 0x7df907aa3700 for fd 10 terminated
+[  218.445551] INFO: task kworker/u8:5:208 blocked for more than 184 seconds.
+[  218.445559]       Tainted: G          I       5.7.10-g780e72b00545 #141
+[  218.445561] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  218.445567] kworker/u8:5    D    0   208      2 0x80004000
+[  218.445576] Workqueue: kmemstick memstick_check
+[  218.445578] Call Trace:
+[  218.445583]  ? __schedule+0x243/0x6a0
+[  218.445585]  ? schedule+0x45/0xc0
+[  218.445588]  ? schedule_timeout+0xbb/0x100
+[  218.445590]  ? kobject_set_name_vargs+0x6d/0xa0
+[  218.445592]  ? dev_set_name+0x4e/0x80
+[  218.445594]  ? wait_for_completion+0x81/0xe0
+[  218.445596]  ? memstick_check+0x11f/0x340
+[  218.445598]  ? process_one_work+0x1a2/0x300
+[  218.445600]  ? worker_thread+0x48/0x3e0
+[  218.445601]  ? rescuer_thread+0x400/0x400
+[  218.445604]  ? kthread+0x115/0x140
+[  218.445605]  ? kthread_associate_blkcg+0xa0/0xa0
+[  218.445607]  ? ret_from_fork+0x1f/0x30
+[  218.445618] INFO: task systemd-udevd:285 blocked for more than 184 seconds.
+[  218.445619]       Tainted: G          I       5.7.10-g780e72b00545 #141
+[  218.445620] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  218.445621] systemd-udevd   D    0   285    251 0x00000104
+[  218.445622] Call Trace:
+[  218.445624]  ? __schedule+0x243/0x6a0
+[  218.445626]  ? schedule+0x45/0xc0
+[  218.445628]  ? schedule_timeout+0xbb/0x100
+[  218.445629]  ? _cond_resched+0x11/0x40
+[  218.445631]  ? start_flush_work.constprop.0+0x54/0x1a0
+[  218.445633]  ? wait_for_completion+0x81/0xe0
+[  218.445634]  ? flush_workqueue+0x118/0x420
+[  218.445636]  ? memstick_remove_host+0x10/0x80
+[  218.445638]  ? rtsx_usb_ms_drv_remove+0x7f/0xe0
+[  218.445640]  ? platform_drv_remove+0x19/0x40
+[  218.445641]  ? __device_release_driver+0x154/0x200
+[  218.445643]  ? device_release_driver+0x1f/0x40
+[  218.445644]  ? bus_remove_device+0xca/0x120
+[  218.445645]  ? device_del+0x167/0x3e0
+[  218.445648]  ? kmem_cache_free+0x23c/0x260
+[  218.445650]  ? platform_device_del.part.0+0xe/0x60
+[  218.445652]  ? devm_mfd_dev_release+0x20/0x20
+[  218.445653]  ? platform_device_unregister+0x1b/0x40
+[  218.445655]  ? mfd_remove_devices_fn+0x35/0x40
+[  218.445656]  ? device_for_each_child_reverse+0x55/0xa0
+[  218.445658]  ? rtsx_usb_disconnect+0x11/0x40
+[  218.445660]  ? usb_unbind_interface+0x80/0x280
+[  218.445662]  ? __device_release_driver+0x154/0x200
+[  218.445663]  ? device_release_driver+0x1f/0x40
+[  218.445664]  ? bus_remove_device+0xca/0x120
+[  218.445666]  ? device_del+0x167/0x3e0
+[  218.445668]  ? usb_disable_device.cold+0x3e/0x165
+[  218.445670]  ? usb_set_configuration+0x86/0x7c0
+[  218.445672]  ? __seccomp_filter+0x75/0x700
+[  218.445674]  ? __check_object_size+0x130/0x153
+[  218.445675]  ? remove_store+0x4e/0x60
+[  218.445678]  ? kernfs_fop_write+0xc6/0x1a0
+[  218.445680]  ? vfs_write+0xb1/0x1a0
+[  218.445681]  ? ksys_write+0x5d/0xe0
+[  218.445683]  ? do_syscall_64+0x3d/0x120
+[  218.445684]  ? entry_SYSCALL_64_after_hwframe+0x44/0xa9
+
+if they're built as modules these two get loaded:
+  rtsx_usb_sdmmc and rtsx_usb_ms
+and the above doesn't happen!
+  but if then I add them to /etc/modprobe.d/blacklist-backlight.conf as blacklisted:
+  blacklist rtsx_usb_sdmmc
+  blacklist rtsx_usb_ms
+then only rtsx_usb_sdmmc gets loaded!
+  maybe I need to re-mkinitcpio with the new change?
+either way the hang doesn't happen!
+
+--------------
+made NET_SCH_TEQL as =M instead of =y or else I get a new net device teql0 which I don't like seeing there :P
+see the comments on top of net/sched/sch_teql.c for how to use
+--------------
+unsure if these are needed, were =n on Z575, and =M on i87k:
+  CONFIG_CRYPTO_DEV_QAT_DH895xCC until CONFIG_CRYPTO_DEV_QAT_C62XVF
+--------------
+TODO: see if maybe CONFIG_UBSAN for more security?
+--------------
+for extra security/bugtracking but with increased slowdown:
+  CONFIG_DEBUG_PAGEALLOC with debug_pagealloc=on (supposedly only slower!)
+  CONFIG_PAGE_OWNER with page_owner=on (this .config option supposedly eats lots of memory!!!)
+  CONFIG_PAGE_POISONING with page_poison=1  hmm, see also CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y and CONFIG_INIT_ON_FREE_DEFAULT_ON=y ; also see: poison kernel stack via CONFIG_GCC_PLUGIN_STACKLEAK=y !
+  TODO: CONFIG_PAGE_POISONING=y and page_poison=1 currently!
+CONFIG_DEBUG_OBJECTS
+CONFIG_SLUB_DEBUG_ON
+maybe CONFIG_DEBUG_KMEMLEAK
+CONFIG_DEBUG_STACK_USAGE
+CONFIG_SCHED_STACK_END_CHECK this is the best, I could enable when mitigations!=off ! TODO: this is currently =y !
+  CONFIG_DEBUG_VM
+CONFIG_DEBUG_VIRTUAL this is costly(they say)
+CONFIG_DEBUG_PER_CPU_MAPS
+CONFIG_KASAN i dno, need to read Documentation/dev-tools/kasan.rst
+CONFIG_DEBUG_TIMEKEEPING  doneTODO: enable when mitigations!=off
+XXX: for debugging lockups, enable some/all of:
+CONFIG_PROVE_LOCKING interesting
+CONFIG_DEBUG_RT_MUTEXES
+CONFIG_DEBUG_SPINLOCK
+CONFIG_DEBUG_MUTEXES=n (required =n for x11-drivers/nvidia-drivers-520.56.06::gentoo on 27 Nov 2022, " *   CONFIG_DEBUG_MUTEXES:       should not be set. But it is.")
+CONFIG_DEBUG_WW_MUTEX_SLOWPATH big performance slowdown
+CONFIG_DEBUG_RWSEMS
+CONFIG_DEBUG_LOCK_ALLOC enable this when mitigations!=off TODO: done, also enabled CONFIG_DEBUG_LOCKING_API_SELFTESTS
+hmm (if any of the above are set) then this might be good CONFIG_LOCK_TORTURE_TEST can do =y or =M
+CONFIG_DEBUG_KOBJECT
+CONFIG_DEBUG_LIST
+CONFIG_DEBUG_PLIST
+CONFIG_DEBUG_SG
+CONFIG_DEBUG_NOTIFIERS  less performance if enabled
+I've set CONFIG_BUG_ON_DATA_CORRUPTION=y so it also set CONFIG_DEBUG_LIST=y
+CONFIG_DEBUG_CREDENTIALS
+CONFIG_RCU_EQS_DEBUG less perf. but more bug detection "Say N here if you need ultimate kernel/user switch latencies"
+nvmTODO: I enabled CONFIG_RCU_PERF_TEST=y to see if it does it at boot time, set back to =n if anything.
+XXX: CONFIG_RCU_PERF_TEST was renamed to CONFIG_RCU_SCALE_TEST in 5.10.1(or 5.10.0 unsure) compared to 5.9.14 !
+
+  guess we'll go with =n on this CONFIG_DEBUG_WQ_FORCE_RR_CPU
+
+TODO: maybe enable this CONFIG_DEBUG_BLOCK_EXT_DEVT and see if things go awry, like can't boot anymore? shouldn't happen!
+CONFIG_LATENCYTOP=y guess we needed this for something!
+CONFIG_FTRACE=n i dno if I ever need this (was =n before!)
+XXX: can use firewire to debug/see dmesg with CONFIG_PROVIDE_OHCI1394_DMA_INIT (=n now, since I don't need it and security issue) but see its F2 help for how to!
+
+TODO: for when learning kernel, see: CONFIG_SAMPLES for how to use/build kernel stuff
+
+TODO: look into CONFIG_KUNIT
+
+TODO: CONFIG_MEMTEST=y interesting! I've set memtest=0 on /proc/cmdline for now!
+
+TODO:  read help of CONFIG_IOMMU_DEBUG , should only consider it on i87k, since Z575 doesn't do IOMMU(ie. incapable)
+
+CONFIG_CPA_DEBUG hmm, every 30 sec?!!
+CONFIG_DEBUG_ENTRY  affects performance, only enable for security
+TODO: maybe test CONFIG_X86_DEBUG_FPU unsure if this affects kernel performance only at boottime, or it's as that last line says: "This debugging adds some small amount of runtime overhead to the kernel.", yeah it should add overhead as it's not the TEST config which is CONFIG_TEST_FPU!
+CONFIG_TEST_FPU: enabling now in 5.18.16 kernel
+CONFIG_X86_DECODER_SELFTEST  hmm... this is odd... =y then :)
+TODO: CONFIG_DEBUG_SHIRQ maybe set this, ok set for now...
+--------------
+I guess we can keep this default CONFIG_IO_DELAY_0X80=y
+--------------
+CONFIG_UNWINDER_GUESS=y because no runtime overhead!
+XXX: set to CONFIG_UNWINDER_FRAME_POINTER or CONFIG_UNWINDER_ORC if want more accurate stack traces, TODO: see about CONFIG_FRAME_POINTER which is Depends on: !UNWINDER_ORC [=n] && !UNWINDER_GUESS [=y]! it's mentioned in CONFIG_KGDB!
+TODO: CONFIG_UNWINDER_ORC is better, but I should test performance slowdown! and see if I get those compile-time issues with the new orc files or wtw they were named... Or maybe, only use CONFIG_UNWINDER_ORC instead of CONFIG_UNWINDER_GUESS in the case when I can repro. some issue and i want to ensure stackdump accuracy ?
+--------------
+//doneTODO: after finding out which option(it's NOT the CONFIG_DEBUG_BLOCK_EXT_DEVT=y, it's CONFIG_RCU_PERF_TEST=y) is the poweroff-er, turn these back to =y :
+////  CONFIG_X86_DEBUG_FPU didn't do this one, it may slowdown perf. at runtime!
+//CONFIG_X86_DECODER_SELFTEST
+//CONFIG_DEBUG_BLOCK_EXT_DEVT
+
+
+even though with CONFIG_DEBUG_BLOCK_EXT_DEVT=y , as per the warning in F2 help, some distros won't boot, this isn't the one causing the issue! (also sdparm will fail with 'SCSI INQUIRY command failed on /dev/sdc')
+  it's CONFIG_RCU_PERF_TEST which causes the auto-poweroff on boot
+keep CONFIG_RCU_PERF_TEST=n or else it will shutdown the PC instead of showing the systemd login prompt on archlinux
+note: if CONFIG_RCU_PERF_TEST was =y and now you set it to =n it removes the =y lines of these 2:
+  CONFIG_TASKS_RCU
+  CONFIG_TORTURE_TEST
+and just replaces "CONFIG_RCU_PERF_TEST=y" with:
+  "# CONFIG_RCU_PERF_TEST is not set"
+
+Note: I've in /proc/cmdline rcu_nocbs=1-3 for Z575! so i dno if this affected it or not! I've had this since forever.
+
+  I've RCU_CPU_STALL_TIMEOUT=21 (seconds) maybe this causes the poweroff? unsure, but definitely only happens when "CONFIG_RCU_PERF_TEST=y"
+--------------
+TODO: maybe disable for boot speed: CONFIG_TEST_LIST_SORT and those near it! tried with more tests but it wouldn't finish booting, console would blank before having USB keyboard driver in, and after a while it was powered off (maybe msr overclocking was on and it thus went to 100 celsius? NO, it was something else (trying to find out which config causes it: it's because of CONFIG_RCU_PERF_TEST=y ) because it powersoff even without these tests!)
+--------------
+CONFIG_REED_SOLOMON_TEST
+lib/reed_solomon/test_rslib.ko is expensive and it causes audio loop like:
+[ 1828.569503] pulseaudio[1559]: E: [alsa-sink-ALC272 Analog] alsa-util.c: snd_pcm_avail() returned a value that is exceptionally large: 1947944 bytes (10145 ms).
+there's more on dmesg while the test is occurring (takes like 1 min? oh wait it's still going!)
+also like:
+[ 1930.539095] rcu: INFO: rcu_sched self-detected stall on CPU
+and stacktraces
+--------------
+TODO: fast/good as modules when modprobed: so built-in them!
+test_bitfield CONFIG_TEST_BITFIELD=y (apparently option is gone in 5.10.1, but was there in 5.9.14)
+in 5.18.16 is CONFIG_BITFIELD_KUNIT:Enable this option to test the bitfield functions at boot.
+
+kernel/time/test_udelay.ko CONFIG_TEST_UDELAY=y
+test_bitmap CONFIG_TEST_BITMAP=y
+test_blackhole_dev CONFIG_TEST_BLACKHOLE_DEV=m (can only be =M !)
+test_bpf (takes 1.5 sec) CONFIG_TEST_BPF=m, can only be =m !
+test_hash CONFIG_TEST_HASH=y aka CONFIG_HASH_KUNIT_TEST=y
+test_hexdump TEST_HEXDUMP=y
+test_ida CONFIG_TEST_IDA=m (can be =y too, but keeping =m until fixed! TODO:) "modprobe: ERROR: could not insert 'test_ida': Invalid argument"
+test_list_sort CONFIG_TEST_LIST_SORT=y (no output tho, some others do this too!)
+test_memcat_p CONFIG_TEST_MEMCAT_P=y
+test_meminit CONFIG_TEST_MEMINIT=y (fails 70/130 tests! takes 1.6sec) also "modprobe: ERROR: could not insert 'test_meminit': Invalid argument"
+test_min_heap CONFIG_TEST_MIN_HEAP=y
+test_overflow TEST_OVERFLOW=y aka CONFIG_OVERFLOW_KUNIT_TEST in 5.18.16
+test_printf TEST_PRINTF=y
+test_rhashtable (1.1sec) CONFIG_TEST_RHASHTABLE=y
+test_siphash from CONFIG_TEST_HASH=y (two options use this .config so far)
+test_sort CONFIG_TEST_SORT=y
+test_stackinit (failures: 23) ok I need to enable one of the two CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF* (which is a selectable actually under 'Memory Initialization'->...) after enabling GCC_PLUGINS=y, or see the F2 help for CONFIG_TEST_STACKINIT! (-CONFIG_TEST_STACKINIT got removed in 5.18.16) it's renamed to CONFIG_STACKINIT_KUNIT_TEST:
+test_strscpy TEST_STRSCPY=y
+test_user_copy CONFIG_TEST_USER_COPY=m can only be =M
+test_uuid TEST_UUID=y
+test_xarray (4.3sec!!) TEST_XARRAY can be =y but keeping it on =M due to 4.3sec run!
+find_bit_benchmark CONFIG_FIND_BIT_BENCHMARK=y
+test-kstrtox CONFIG_TEST_KSTRTOX=y (you see no output, modprobing always fails)
+test-string_helpers CONFIG_TEST_STRING_HELPERS=y (you only see "Running tests...", no other output on success! and modprobing is supposed to fail!) NOTE: modprobe can handle '-' or '_' in filenames just the same, so it doesn't matter!
+percpu_test CONFIG_PERCPU_TEST=m (can only be =M)
+rbtree_test CONFIG_RBTREE_TEST
+interval_tree_test CONFIG_INTERVAL_TREE_TEST=y (0.2sec, has some output) fails to modprobe, on purpose no doubt!
+atomic64_test CONFIG_ATOMIC64_SELFTEST=y (output: "atomic64_test: passed for x86-64 platform with CX8 and with SSE" on Z575)
+globtest CONFIG_GLOB_SELFTEST it's in 'Library routines'
+test_string CONFIG_STRING_SELFTEST it's in 'Library routines'
+
+TODO: find out what others should be =y or just =M from above!!
+TODO: new in 5.8.1 CONFIG_TEST_BITOPS test_bitops
+TODO: new in 5.18.16(or earlier): (those with =y are already set to be tested on next reboot)
+ CONFIG_RESOURCE_KUNIT_TEST
+ CONFIG_SYSCTL_KUNIT_TEST
+ CONFIG_LIST_KUNIT_TEST
+  CONFIG_LINEAR_RANGES_TEST=y
+  CONFIG_CMDLINE_KUNIT_TEST=y
+ CONFIG_BITS_TEST
+  CONFIG_SLUB_KUNIT_TEST=y
+ CONFIG_RATIONAL_KUNIT_TEST
+  CONFIG_MEMCPY_KUNIT_TEST=y
+ CONFIG_TEST_STATIC_KEYS
+never set: CONFIG_TEST_KMOD (which can only be =m anyway, because of why I never want it: 
+ │ Although technically you can either build test_kmod as a module or                                                                                           │
+ │ into the kernel we disallow building it into the kernel since                                                                                                │
+ │ it stress tests request_module() and this will very likely cause                                                                                             │
+ │ some issues by taking over precious threads available from other                                                                                             │
+ │ module load requests, ultimately this could be fatal.  
+)
+ CONFIG_TEST_FREE_PAGES
+--------------
+test_module (for fun) keep this =m, it shows "Hello world" on dmesg
+--------------
+test_vmalloc fails and takes 2min6sec of 100% CPU usage (all 4 cores), so avoid using this! ie. set to CONFIG_TEST_VMALLOC=n
+see fixme.log to try fixing...
+
+vmalloc=nn[KMG] [KNL,BOOT] Forces the vmalloc area to have an exact
+    size of <nn>. This can be used to increase the
+    minimum size (128MB on x86). It can also be used to
+    decrease the size and leave more room for directly              
+    mapped kernel RAM.
+
+--------------
+keep GCC_PLUGINS=y even if you don't select anything in its submenus, because without it, some things are invisible, like CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF* settings!
+--------------
+find out what causes this (I used to know before and had it disabled or unloaded module, or maybe's just a debugging options being on):
+
+[   46.571536] i2c i2c-2: i2c_outb: 0xa0, timeout at bit #7
+[   46.589504] i2c i2c-2: i2c_outb: 0xa0, timeout at bit #7
+[   46.598534] i2c i2c-2: i2c_outb: 0xa0, timeout at bit #7
+[   46.612539] i2c i2c-2: i2c_outb: 0xa0, timeout at bit #7
+[   46.612547] i2c i2c-2: Used 4 tries to write to client at 0x50: failed, timeout?
+[   46.612549] i2c i2c-2: NAK from device addr 0x50 msg #0
+
+--------------
+TODO: look into CONFIG_FS_DAX "Direct Access (DAX) support" for Optane ?
+--------------
+do not set CONFIG_PANIC_ON_OOPS=y because we wanna allow oops=panic on /proc/cmdline to control this setting!
+  so keep it on CONFIG_PANIC_ON_OOPS=n
+--------------
+set CONFIG_MEMSTICK_DEBUG=n because it's very spammy during copy!
+--------------
+I think having CONFIG_KEYBOARD_GPIO=y is useless unless I also have a "platform-specific driver" with it ? and if I had, I'm sure this will be forcefully auto-selected! so TODO: maybe remove?
+--------------
+see the help for CONFIG_KERNEL_XZ=y if you want to know why XZ_DEC_X86=y even tho it's not auto-set !
+--------------
+hmm unsure if I should say =n on this CONFIG_VIDEO_ADV_DEBUG
+oh well =n then
+--------------
+CONFIG_INTEL_MEI_ME is something that T400 has as module mei_me, but since this is about intel ME, I'm not sure I should use it?
+might also need to enable
+CONFIG_INTEL_MEI
+CONFIG_INTEL_MEI_TXE says for Bay Trail platform but I already don't have CONFIG_INTEL_INT0002_VGPIO which is for same platform. So I guess I don't have that Bay Trail platform, it's a SoC. I've Penryn for mobile core 2 duo T9400 processor.
+CONFIG_INTEL_MEI_HDCP
+has watchdog as 'mei_wdt' module, CONFIG_INTEL_MEI_WDT, Prompt: Intel MEI iAMT Watchdog, see: https://www.kernel.org/doc/html/latest/driver-api/mei/iamt.html#intel-amt-os-health-watchdog
+  note: it needs INTEL_MEI=y or else you can't see INTEL_MEI_WDT in list
+  note that I already have another non-mei watchdog: iTCO_wdt
+"The Intel iAMT watchdog MEI driver uses the kernel watchdog API to configure the Intel AMT Watchdog and to send heartbeats to it. The default timeout of the watchdog is 120 seconds."
+"If the Intel AMT is not enabled in the firmware then the watchdog client won’t enumerate on the me client bus and watchdog devices won’t be exposed."
+i think AMT is disabled in BIOS, unsure!
+
+keeping all =n for now! because probably security issue if they're in use!
+--------------
+CONFIG_YENTA needed for T400, module is yenta_socket
+Model: "Lenovo ThinkPad R61/T400"
+Vendor: pci 0x1180 "Ricoh Co Ltd"
+Device: pci 0x0476 "RL5c476 II"
+so at least CONFIG_YENTA=y and CONFIG_YENTA_RICOH=y is needed
+
+the following got revealed as new, but apparently not needed:
+  CONFIG_SND_VXPOCKET
+  CONFIG_SND_PDAUDIOCF
+  CONFIG_SYNCLINK_CS
+  CONFIG_CARDMAN_4000 and CONFIG_CARDMAN_4040
+  CONFIG_SCR24X
+  CONFIG_IPWIRELESS
+  SERIAL_8250_CS  which is different than wtw module 'serial8250' is, probably the SERIAL_8250=y already
+  CONFIG_PCMCIA_WL3501
+  CONFIG_PCMCIA_RAYCS
+  CONFIG_PCMCIA_XIRC2PS
+  CONFIG_PATA_PCMCIA , Prompt: PCMCIA PATA support
+  CONFIG_PD6729 Prompt: Cirrus PD6729 compatible bridge support
+  CONFIG_I82092 Prompt: i82092 compatible bridge support
+
+TODO: Probably not needed but kept as =y anywya:
+  CONFIG_YENTA_O2
+  CONFIG_YENTA_TI
+  CONFIG_YENTA_ENE_TUNE
+  CONFIG_YENTA_TOSHIBA
+
+TODO: unsure if needed:
+  CONFIG_PCMCIA_LOAD_CIS
+--------------
+uvcvideo module is needed by integrated webcams on both T400 and Z575
+this is CONFIG_USB_VIDEO_CLASS which should remain =m to allow uvcvideo module to be removed, on Z575 especially.
+note: depends on VIDEO_V4L2
+--------------
+lpc_ich module is needed for T400
+CONFIG_LPC_ICH
+Prompt: Intel ICH LPC in Device Drivers -> Multifunction device drivers
+--------------
+apparently T400 has/needs CONFIG_SND_HDA_CODEC_CONEXANT, a codec
+so =y for now.
+--------------
+at least T400 has this:
+'ppdev' module, CONFIG_PPDEV, for Prompt: Support for user-space parallel port device drivers
+depends on PARPORT
+keeping this on disabled for now
+--------------
+T400 has ACPI_WMI=y, module 'acpi-wmi'
+Windows Management Instrumentation
+mapper device PNP0C14
+apparently it's a good idea =y
+
+wmi_bmof is also =y, was also on debian anyway.
+
+  not needed new things that got revealead:
+  CONFIG_LG_LAPTOP
+  CONFIG_TOSHIBA_WMI
+  CONFIG_MSI_WMI
+  CONFIG_SURFACE3_WMI
+  CONFIG_HP_WMI
+  CONFIG_DELL_WMI_LED
+  CONFIG_DELL_WMI_AIO
+  CONFIG_ASUS_WMI
+  CONFIG_ACER_WMI
+  CONFIG_XIAOMI_WMI
+  CONFIG_PEAQ_WMI
+  CONFIG_MXM_WMI
+  CONFIG_INTEL_WMI_THUNDERBOLT
+  CONFIG_INTEL_WMI_SBL_FW_UPDATE
+  CONFIG_HUAWEI_WMI
+  CONFIG_ALIENWARE_WMI
+
+--------------
+CONFIG_I2C_I801 has modules: 'i801_smbus' and 'i2c_i801', actually i801_smbus is not a module, it's the 'driver' (seen by hwinfo as such) and it's part of the i2c_i801 module!
+  needed by T400!
+--------------
+so, this setting is different:
+  on archlinux it's CONFIG_FAT_DEFAULT_IOCHARSET="iso8859-1"
+on gentoo it's CONFIG_FAT_DEFAULT_IOCHARSET="ascii"
+keeping it on 'ascii' for now, on gentoo
+--------------
+CONFIG_DRM_FBDEV_EMULATION=y (and everything else it selects) is needed on Z575 or else screen goes black (not even backlight is on) during boot when it switches to gfx.
+  same on i87k which has intel integrated gfx iGPU!
+
+  TODO: maybe I'm not doing KMS correctly on either of them?!? see https://wiki.gentoo.org/wiki/Xorg/Guide#Kernel_modesetting
+
+$ colordiff -up .config.old .config
+--- .config.old	2020-11-25 09:00:11.263050584 +0100
++++ .config	2020-11-29 10:02:01.582892579 +0100
+@@ -3403,11 +3403,8 @@ CONFIG_DRM_MIPI_DSI=y
+ # CONFIG_DRM_DEBUG_MM is not set
+ # CONFIG_DRM_DEBUG_SELFTEST is not set
+ CONFIG_DRM_KMS_HELPER=y
+-CONFIG_DRM_KMS_FB_HELPER=y
+ # CONFIG_DRM_DEBUG_DP_MST_TOPOLOGY_REFS is not set
+-CONFIG_DRM_FBDEV_EMULATION=y
+-CONFIG_DRM_FBDEV_OVERALLOC=100
+-# CONFIG_DRM_FBDEV_LEAK_PHYS_SMEM is not set
++# CONFIG_DRM_FBDEV_EMULATION is not set
+ # CONFIG_DRM_LOAD_EDID_FIRMWARE is not set
+ # CONFIG_DRM_DP_CEC is not set
+ CONFIG_DRM_TTM=y
+@@ -3513,15 +3510,7 @@ CONFIG_FB_CMDLINE=y
+ CONFIG_FB_NOTIFY=y
+ CONFIG_FB=y
+ # CONFIG_FIRMWARE_EDID is not set
+-CONFIG_FB_CFB_FILLRECT=y
+-CONFIG_FB_CFB_COPYAREA=y
+-CONFIG_FB_CFB_IMAGEBLIT=y
+-CONFIG_FB_SYS_FILLRECT=y
+-CONFIG_FB_SYS_COPYAREA=y
+-CONFIG_FB_SYS_IMAGEBLIT=y
+ # CONFIG_FB_FOREIGN_ENDIAN is not set
+-CONFIG_FB_SYS_FOPS=y
+-CONFIG_FB_DEFERRED_IO=y
+ CONFIG_FB_MODE_HELPERS=y
+ CONFIG_FB_TILEBLITTING=y
+
+--------------
+old info from 2017, unsure if still true or something:
+
+requirements for powertop:
+https://wiki.gentoo.org/wiki/PowerTOP#Kernel
+$ zcat /proc/config.gz |grep -iE '(CONFIG_TRACING|CONFIG_TIMER_STATS|CONFIG_BLK_DEV_IO_TRACE|CONFIG_TIMER_STATS|CONFIG_TRACEPOINTS)'
+# CONFIG_TIMER_STATS is not set
+CONFIG_TRACING_SUPPORT=y
+
+that's what I currently have and seems ok enough for powetop
+
+--------------
+CONFIG_STATIC_CALL_SELFTEST=y new in 5.10.1 (compared to 5.9.14 which was last stable 5.9.y kernel)
+--------------
+Allowing the following new options in 5.10.4 kernel (compared with either 5.10.1 or 5.9.12):
+CONFIG_GPIO_CDEV
+CONFIG_GPIO_CDEV_V1
+
+similarly, ignoring new:
+CONFIG_BPF_PRELOAD
+
+was renamed:
+CONFIG_DPTF_POWER -> CONFIG_ACPI_DPTF  //  Prompt: Intel DPTF (Dynamic Platform and Thermal Framework) Support
+
+explicitly enabling new:
+CONFIG_STATIC_CALL_SELFTEST=y //Boot time self-test of the call patching code.
+
+newly gone:
+CONFIG_ZSMALLOC_PGTABLE_MAPPING (wasn't set)
+
+
+well, nvm, looks like archlinux .config was already up to date! so not looking further into it. The only diff was CONFIG_STATIC_CALL_SELFTEST=y
+ok wait, there are commented out settings!!!!! those weren't compared! like 100+ lines diff!
+--------------
+zstd was default zram compression, apparently, on kernel 5.10.12 and before, so now on 5.12.1 kernel I've set the following new configs in order to preserve that zstd as compression for zram:
++CONFIG_ZRAM_DEF_COMP_842 is not set
++CONFIG_ZRAM_DEF_COMP_LZ4HC is not set
++CONFIG_ZRAM_DEF_COMP_LZ4 is not set
++CONFIG_ZRAM_DEF_COMP_LZO is not set
++CONFIG_ZRAM_DEF_COMP_LZORLE is not set
++CONFIG_ZRAM_DEF_COMP="zstd"
++CONFIG_ZRAM_DEF_COMP_ZSTD=y
+--------------
++CONFIG_X86_SGX is not set
+it's disabled in BIOS for one
+and it's hackable(system takeover? dont remember) according to news articles
+so unsure if I should enable this ever?!
+--------------
++CONFIG_X86_PLATFORM_DRIVERS_DELL is not set
+Dell X86 Platform Specific Device Drivers
+so don't need!
+--------------
+these went away(or were renamed?) in kernel 5.12.1 compared to 5.10.12:
+-CONFIG_ALIENWARE_WMI is not set
+-CONFIG_BLK_DEV_SKD is not set
+-CONFIG_CRYPTO_GLUE_HELPER_X86=y
+-CONFIG_CRYPTO_RMD128 is not set
+-CONFIG_CRYPTO_RMD256 is not set
+-CONFIG_CRYPTO_RMD320 is not set
+-CONFIG_CRYPTO_SALSA20 is not set
+-CONFIG_CRYPTO_TGR192 is not set
+-CONFIG_DCDBAS is not set
+-CONFIG_DELL_RBTN is not set
+-CONFIG_DELL_RBU is not set
+-CONFIG_DELL_SMBIOS is not set
+-CONFIG_DELL_SMO8800 is not set
+-CONFIG_DELL_WMI_AIO is not set
+-CONFIG_DELL_WMI_LED is not set
+-CONFIG_DRM_TTM_DMA_PAGE_POOL=y
+-CONFIG_ENABLE_MUST_CHECK=y
+-CONFIG_FRAME_VECTOR=y
+-CONFIG_GPIO_XILINX is not set
+-CONFIG_GUP_BENCHMARK is not set
+-CONFIG_HAVE_OPROFILE=y
+-CONFIG_I2C_HID=y
+-CONFIG_INPUT_POLLDEV is not set
+-CONFIG_LD_VERSION=235010000  well this just became +CONFIG_LD_VERSION=23501
+-CONFIG_NET_VENDOR_AURORA is not set
+-CONFIG_OPROFILE_NMI_TIMER=y
+-CONFIG_PAGE_POISONING_NO_SANITY is not set
+-CONFIG_PAGE_POISONING_ZERO is not set
+-CONFIG_PCIE_BW=y
+-CONFIG_REGULATOR_PFUZE100 is not set
+-CONFIG_SERIAL_IFX6X60 is not set
+-CONFIG_SFI=y
+-CONFIG_SLUB_MEMCG_SYSFS_ON is not set
+-CONFIG_UNUSED_SYMBOLS=y
+-CONFIG_USB_CDNS3 is not set
+-CONFIG_USB_SERIAL_XIRCOM is not set
+-CONFIG_VIDEO_SMIAPP is not set
+-CONFIG_WIMAX is not set
+-CONFIG_WIRELESS_WDS is not set
+
+ok so to redo:
+don't need:
+CONFIG_USB_SERIAL_XR = USB MaxLinear/Exar USB to Serial driver
+CONFIG_USB_RTL8153_ECM = RTL8153 ECM support
+CONFIG_USB_CDNS_SUPPORT = Cadence USB Support
+CONFIG_USB_CDN* ~ Cadence whatever, not needed
+CONFIG_SURFACE_PLATFORMS is not set ~ Microsoft Surface Platform-Specific Device Drivers
+CONFIG_SERIAL_BCM63XX ~ Broadcom BCM63xx/BCM33xx UART support
+CONFIG_SECCOMP_CACHE_DEBUG ~ Show seccomp filter cache status in /proc/pid/seccomp_cache
+CONFIG_PWM_DWC ~ PWM driver for Synopsys DWC PWM Controller attached to a PCI bus.
+CONFIG_MT7921E ~ MediaTek MT7921E (PCIe) support  aka Network device Wireless LAN MediaTek devices
+CONFIG_MFD_INTEL_PMT ~ The Intel Platform Monitoring Technology (PMT)... for platforms starting from Tiger Lake. so can't use this!
++CONFIG_INTEL_LDMA is not set ~ Lightning Mountain centralized DMA controllers Enable support for Intel Lightning Mountain SOC DMA controllers. These controllers provide DMA capabilities for a variety of on-chip devices such as HSNAND and GSWIP (Gigabit Switch IP). 
+CONFIG_INPUT_DA7280_HAPTICS ~ Dialog Semiconductor DA7280 haptics support
++CONFIG_HID_PLAYSTATION is not set ~ PlayStation HID Driver
++CONFIG_GUP_TEST is not set ~ Enable infrastructure for get_user_pages()-related unit tests ~ Provides /sys/kernel/debug/gup_test,  was renamed from -CONFIG_GUP_BENCHMARK is not set  probably
++CONFIG_EXTCON_USBC_TUSB320 is not set ~ TI TUSB320 USB-C extcon support ~ External Connector Class (extcon) support (EXTCON [=y])
+CONFIG_EDAC_IGEN6 ~ Intel client SoC Integrated MC
+CONFIG_DRM_TTM_HELPER ~ can't be set manually
+CONFIG_DMA_MAP_BENCHMARK ~ Enable benchmarking of streaming DMA mapping
+CONFIG_DMABUF_DEBUG ~ DMA-BUF debug checks
+CONFIG_DEBUG_KMAP_LOCAL_FORCE_MAP ~ Enforce kmap_local temporary mappings
+CONFIG_DEBUG_IRQFLAGS ~ Debug IRQ flag manipulation
+CONFIG_CXL_BUS ~ CXL (Compute Express Link) Devices Support
+CONFIG_BCM_VK ~ Support for Broadcom VK Accelerators
+CONFIG_AMD_SFH_HID ~ AMD Sensor Fusion Hub. ~ starting from 17h family of RYZEN parts.
+
+
+Got renamed:
+
+-CONFIG_UNUSED_SYMBOLS=y
++CONFIG_TRIM_UNUSED_KSYMS is not set
+I guess the prev. value was kept then, so CONFIG_TRIM_UNUSED_KSYMS=n is same as CONFIG_UNUSED_SYMBOLS=y
+
+I'll set this new one on =y(seen in 5.12.1 kernel) even though it's disabled in BIOS:
+TCG_TIS_I2C_CR50=y ~ TPM Interface Specification 2.0 Interface (I2C - CR50)
+esp. considering I've already the following:
+CONFIG_TCG_TPM=y
+CONFIG_HW_RANDOM_TPM=y
+# CONFIG_TCG_VTPM_PROXY is not set
+
+Set to =y but no idea if needed(like its siblings):
+CONFIG_CRYPTO_DEV_QAT_4XXX=y ~ Support for Intel(R) QAT_4XXX
+
+set to =y for fun:
+CONFIG_ACPI_FPDT=y ACPI Firmware Performance Data Table (FPDT) support ~ Enable support for the Firmware Performance Data Table (FPDT). This table provides information on the timing of the system boot, S3 suspend and S3 resume firmware code paths.
+
+want(=y):
+CONFIG_SENSORS_CORSAIR_PSU=y ~ Corsair PSU HID controller
+If you say yes here you get support for Corsair PSUs with a HID interface.
+Currently this driver supports the (RM/HX)550i, (RM/HX)650i, (RM/HX)750i, (RM/HX)850i, (RM/HX)1000i and HX1200i power supplies by Corsair.
+corsair-psu is module name if ever.
+
+Got auto set =y:
+CONFIG_F2FS_FS_LZ4HC ~ LZ4HC compression support ~ F2FS filesystem support
+
+--------------
+CONFIG_LTO_NONE=y because there's no other option! in 5.12.1 kernel anyway, with my current .config
+
+--------------
+I've set CONFIG_KFENCE=y for memory safety purposes, but this altho low-overhead, is slowing things down(in theory anyway), so disable this if you want speed/performance. (performance cost when this is enabled) TODO: disable for speed! good for security!
+for info: Documentation/dev-tools/kfence.rst
+--------------
+CONFIG_KCMP=y Visible if: EXPERT [=y]
+allowing this for now because of its description:
+(actually this is a must and is auto =y !)
+
+Enable the kernel resource comparison system call. It provides
+ user-space with the ability to compare two processes to see if they
+ share a common resource, such as a file descriptor or even virtual
+ memory space.
+(yup /usr/bin/qterminal doesn't have vertical selection like xfce4-terminal does! gah!! 07 may 2021)
+--------------
+set to =n the  GENTOO_KERNEL_SELF_PROTECTION=n (new option in 5.12.10 for Gentoo)
+  why? because it at least select this which we don't want: PANIC_ON_OOPS=y
+
+
+--------------
+  reverted this whole section for now:
+
+since 5.12.10, enabled CONFIG_BLK_DEV_MD=m (has to be =m or else =y won't allow mdadm to work due to can't use /sys/module/... something ) so that I can try to mount QNAP disk (a 1of2 raid disk) - instructions as to how were found on  https://forum.qnap.com/viewtopic.php?p=702846#p702846
+
+doesn't work: //also needs CONFIG_DM_THIN_PROVISIONING (as =m for now) or else:
+   WARNING: Failed to connect to lvmetad. Falling back to device scanning.
+  WARNING: Unrecognised segment type tier-thin-pool
+  WARNING: Unrecognised segment type flashcache
+--------------
+  since 5.13.1 CONFIG_BOUNCE=y is now =n /unset because it needs 32bit arch now, at least.
+--------------
+new since 5.13.1 left at defaults, so unset:
+  +CONFIG_CGROUP_MISC is not set
+  +CONFIG_CMA_SYSFS is not set
+
+  +CONFIG_COMEDI is not set
+  ^ that is really not anything that I have
+
+  +CONFIG_DRM_GUD is not set
+  ^ some display device via USB or something, definitely don't have.
+
+  +CONFIG_DW_XDATA_PCIE is not set
+  +CONFIG_GIGABYTE_WMI is not set
+  ^ devices I don't have
+
+  +CONFIG_HID_FT260 is not set
+  +CONFIG_HID_SEMITEK is not set
+  +CONFIG_MARVELL_88X2222_PHY is not set
+  +CONFIG_MFD_ATC260X_I2C is not set
+  +CONFIG_NXP_C45_TJA11XX_PHY is not set
+  +CONFIG_SENSORS_NZXT_KRAKEN2 is not set
+  ^ presumably don't have any of these.
+
+  +CONFIG_SYSTEM_REVOCATION_LIST is not set
+  ^ dno if I need this ever, is anything that can use it?
+
+  +CONFIG_VMLINUX_MAP is not set
+  ^ Prompt: Generate vmlinux.map file when linking
+  ^ what's that for? TODO
+
+  +CONFIG_WWAN is not set
+  ^ Prompt: Wireless WAN
+  ^ TODO: do I need this on laptop if I ever want wireless?
+--------------
+  since 5.13.1(at least) set this to =y from unset:
+  CONFIG_CRYPTO_ECDSA=y
+--------------
+  new in 5.13.1 left at default:
+  +CONFIG_DRM_I915_REQUEST_TIMEOUT=20000
+  ^ that's 20sec
+--------------
+  keeping this on =y since 5.13.1, but dno what it does:
+  +CONFIG_NETFILTER_XTABLES_COMPAT=y
+  +CONFIG_NF_LOG_SYSLOG=y  Prompt: Syslog packet logging
+  +CONFIG_PCPU_DEV_REFCNT=y Prompt: Use percpu variables to maintain network device refcount
+--------------
+  setting from =y to =n in 5.13.1:
+  CONFIG_NET_VENDOR_MICROSOFT=n
+--------------
+  since 5.13.1(or earlier) set this from unset to =y
+
+  RANDOMIZE_KSTACK_OFFSET_DEFAULT=y from unset, new in 5.13.1(or earlier, but after 5.12.13), to increase security
+  CONFIG_SECURITY_LANDLOCK=y from unset, for security if any processes can use these!
+
+--------------
+  set this CONFIG_SND_VERBOSE_PRINTK=y if you want verbosity source:line printk for SND (only) !
+  ok, I've set that for now.
+--------------
+  I've set this to =y so it affects boot time:
+  CONFIG_TEST_DIV64=y
+--------------
+  CONFIG_SLS: default n
+  Compile the kernel with straight-line-speculation options to guard
+against straight line speculation. The kernel image might be slightly
+larger.
+disable for speed(i guess?), enable for security
+I've mitigations=off in cmdline so keeping this on =n for now
+--------------
+  CONFIG_MNATIVE=y is gone since using USE=experimental when emerging gentoo-sources (28 may 2022) so now you got two natives:
+  40. Intel-Native optimizations autodetected by the compiler (MNATIVE_INTEL) (NEW)
+  41. AMD-Native optimizations autodetected by the compiler (MNATIVE_AMD) (NEW)
+  which means u can't use same config on both intel and amd, gr9
+
+--------------
+  CONFIG_SCHED_CLUSTER: i don't ever have more than 1 cpu so... why should I keep this?
+--------------
+  CONFIG_PERF_EVENTS_AMD_UNCORE: keep this on default Y
+--------------
+  #security maybe
+  keep on def. N then cuz why break apps:
+  CONFIG_STRICT_SIGALTSTACK_SIZE:
+
+For historical reasons MINSIGSTKSZ is a constant which became
+already too small with AVX512 support. Add a mechanism to
+enforce strict checking of the sigaltstack size against the
+real size of the FPU frame. This option enables the check
+by default. It can also be controlled via the kernel command
+line option 'strict_sas_size' independent of this config
+switch. Enabling it might break existing applications which
+allocate a too small sigaltstack but 'work' because they
+never get a signal delivered.
+--------------
+  ACPI_PFRUT =N because we don't want to get firmware updated...
+--------------
+  CONFIG_ACPI_PCC: y sure
+--------------
+    AMD Processor P-State driver (X86_AMD_PSTATE) [N/m/y/?] (NEW)
+  n for now
+
+This driver adds a CPUFreq driver which utilizes a fine grain
+processor performance frequency control range instead of legacy
+performance levels. _CPC needs to be present in the ACPI tables
+of the system.
+
+For details, take a look at:
+<file:Documentation/admin-guide/pm/amd-pstate.rst>.
+
+If in doubt, say N.
+--------------
+  y to this:
+  CONFIG_BLK_CGROUP_IOPRIO:
+
+Enable the .prio interface for assigning an I/O priority class to
+requests. The I/O priority class affects the order in which an I/O
+scheduler and block devices process requests. Only some I/O schedulers
+and some block devices support I/O priorities.
+
+Symbol: BLK_CGROUP_IOPRIO [=n]
+--------------
+  CONFIG_ANON_VMA_NAME:
+  n for now, but interesting
+  CONFIG_ANON_VMA_NAME:
+
+Allow naming anonymous virtual memory areas.
+
+This feature allows assigning names to virtual memory areas. Assigned
+names can be later retrieved from /proc/pid/maps and /proc/pid/smaps
+and help identifying individual anonymous memory areas.
+Assigning a name to anonymous virtual memory area might prevent that
+area from being merged with adjacent virtual memory areas due to the
+difference in their name.
+
+Symbol: ANON_VMA_NAME [=n]
+--------------
+  interesting but N for now:
+  *
+* Data Access Monitoring
+*
+DAMON: Data Access Monitoring Framework (DAMON) [N/y/?] (NEW) ?
+
+CONFIG_DAMON:
+
+This builds a framework that allows kernel subsystems to monitor
+access frequency of each memory region. The information can be useful
+for performance-centric DRAM level memory management.
+
+See https://damonitor.github.io/doc/html/latest-damon/index.html for
+more information.
+
+Symbol: DAMON [=n]
+--------------
+  let's go with N for now:
+  CONFIG_DEVTMPFS_SAFE:
+
+This instructs the kernel to include the MS_NOEXEC and MS_NOSUID mount
+flags when mounting devtmpfs.
+
+Notice: If enabled, things like /dev/mem cannot be mmapped
+with the PROT_EXEC flag. This can break, for example, non-KMS
+video drivers.
+
+Symbol: DEVTMPFS_SAFE [=n]
+Type  : bool
+Defined at drivers/base/Kconfig:65
+  Prompt: Use nosuid,noexec mount options on devtmpfs
+  Depends on: DEVTMPFS [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Generic Driver Options
+          -> Maintain a devtmpfs filesystem to mount at /dev (DEVTMPFS [=y])
+
+
+
+  Use nosuid,noexec mount options on devtmpfs (DEVTMPFS_SAFE) [N/y/?] (NEW)
+--------------
+  bruh, what?
+  CONFIG_SYSFB_SIMPLEFB:
+
+Firmwares often provide initial graphics framebuffers so the BIOS,
+bootloader or kernel can show basic video-output during boot for
+user-guidance and debugging. Historically, x86 used the VESA BIOS
+Extensions and EFI-framebuffers for this, which are mostly limited
+to x86 BIOS or EFI systems.
+This option, if enabled, marks VGA/VBE/EFI framebuffers as generic
+framebuffers so the new generic system-framebuffer drivers can be
+used instead. If the framebuffer is not compatible with the generic
+modes, it is advertised as fallback platform framebuffer so legacy
+drivers like efifb, vesafb and uvesafb can pick it up.
+If this option is not selected, all system framebuffers are always
+marked as fallback platform framebuffers as usual.
+
+Note: Legacy fbdev drivers, including vesafb, efifb, uvesafb, will
+not be able to pick up generic system framebuffers if this option
+is selected. You are highly encouraged to enable simplefb as
+replacement if you select this option. simplefb can correctly deal
+with generic system framebuffers. But you should still keep vesafb
+and others enabled as fallback if a system framebuffer is
+incompatible with simplefb.
+
+If unsure, say Y.
+
+Symbol: SYSFB_SIMPLEFB [=n]
+Type  : bool
+Defined at drivers/firmware/Kconfig:224
+  Prompt: Mark VGA/VBE/EFI FB as generic system framebuffer
+  Depends on: SYSFB [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Firmware Drivers
+
+
+
+Mark VGA/VBE/EFI FB as generic system framebuffer (SYSFB_SIMPLEFB) [N/y/?] (NEW)
+
+  and
+
+  CONFIG_DRM_SIMPLEDRM:
+
+DRM driver for simple platform-provided framebuffers.
+
+This driver assumes that the display hardware has been initialized
+by the firmware or bootloader before the kernel boots. Scanout
+buffer, size, and display format must be provided via device tree,
+UEFI, VESA, etc.
+
+On x86 BIOS or UEFI systems, you should also select SYSFB_SIMPLEFB
+to use UEFI and VESA framebuffers.
+
+Symbol: DRM_SIMPLEDRM [=n]
+Type  : tristate
+Defined at drivers/gpu/drm/tiny/Kconfig:54
+  Prompt: Simple framebuffer driver
+  Depends on: HAS_IOMEM [=y] && DRM [=y] && MMU [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Graphics support
+Selects: DRM_GEM_SHMEM_HELPER [=m] && DRM_KMS_HELPER [=y]
+
+
+
+Simple framebuffer driver (DRM_SIMPLEDRM) [N/m/y/?] (NEW)
+
+
+  they're both N for now.
+--------------
+  let's say N here:
+  CONFIG_INTEL_MEI_PXP:
+
+MEI Support for PXP Services on Intel platforms.
+
+Enables the ME FW services required for PXP support through
+I915 display driver of Intel.
+
+Symbol: INTEL_MEI_PXP [=n]
+Type  : tristate
+Defined at drivers/misc/mei/pxp/Kconfig:5
+  Prompt: Intel PXP services of ME Interface
+  Depends on: DRM_I915 [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Misc devices
+Selects: INTEL_MEI_ME [=n]
+
+
+
+Intel PXP services of ME Interface (INTEL_MEI_PXP) [N/m/y/?] (NEW)
+
+  CONFIG_DRM_I915_PXP:
+
+PXP (Protected Xe Path) is an i915 component, available on graphics
+version 12 and newer GPUs, that helps to establish the hardware
+protected session and manage the status of the alive software session,
+as well as its life cycle.
+
+Symbol: DRM_I915_PXP [=n]
+--------------
+  i guess no?
+  CONFIG_IPMI_IPMB:
+
+Provides a driver for a system running right on the IPMB bus.
+It supports normal system interface messages to a BMC on the IPMB
+bus, and it also supports direct messaging on the bus using
+IPMB direct messages.  This module requires I2C support.
+
+Symbol: IPMI_IPMB [=n]
+--------------
+  we try Y here I guess:
+  CONFIG_SENSORS_ASUS_WMI:
+
+If you say yes here you get support for the ACPI hardware monitoring
+interface found in X370/X470/B450/X399 ASUS motherboards. This driver
+will provide readings of fans, voltages and temperatures through the system
+firmware.
+
+This driver can also be built as a module. If so, the module
+will be called asus_wmi_sensors.
+
+Symbol: SENSORS_ASUS_WMI [=n]
+Type  : tristate
+Defined at drivers/hwmon/Kconfig:2242
+  Prompt: ASUS WMI X370/X470/B450/X399
+  Depends on: HWMON [=y] && ACPI [=y] && ACPI_WMI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Hardware Monitoring support (HWMON [=y])
+
+
+
+  ASUS WMI X370/X470/B450/X399 (SENSORS_ASUS_WMI) [N/m/y/?] (NEW)
+--------------
+  trying Y:
+  CONFIG_SENSORS_ASUS_WMI_EC:
+
+If you say yes here you get support for the ACPI embedded controller
+hardware monitoring interface found in B550/X570 ASUS motherboards.
+This driver will provide readings of fans, voltages and temperatures
+through the system firmware.
+
+This driver can also be built as a module. If so, the module
+will be called asus_wmi_sensors_ec.
+
+Symbol: SENSORS_ASUS_WMI_EC [=n]
+Type  : tristate
+Defined at drivers/hwmon/Kconfig:2254
+  Prompt: ASUS WMI B550/X570
+  Depends on: HWMON [=y] && ACPI [=y] && ACPI_WMI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Hardware Monitoring support (HWMON [=y])
+
+
+
+  ASUS WMI B550/X570 (SENSORS_ASUS_WMI_EC) [N/m/y/?] (NEW)
+--------------
+  interesting but N
+  Enable backtrace history for lock contention (DRM_DEBUG_MODESET_LOCK) [N/y/?] (NEW) ?
+
+CONFIG_DRM_DEBUG_MODESET_LOCK:
+
+Enable debug tracing of failures to gracefully handle drm modeset lock
+contention. A history of each drm modeset lock path hitting -EDEADLK
+will be saved until gracefully handled, and the backtrace will be
+printed when attempting to lock a contended lock.
+
+If in doubt, say "N".
+--------------
+  erm, is this back?
+  //Framebuffer Console support (FRAMEBUFFER_CONSOLE) [Y/n/?] y
+  Enable legacy fbcon hardware acceleration code (FRAMEBUFFER_CONSOLE_LEGACY_ACCELERATION) [N/y/?] (NEW) ?
+
+CONFIG_FRAMEBUFFER_CONSOLE_LEGACY_ACCELERATION:
+
+This option enables the fbcon (framebuffer text-based) hardware
+acceleration for graphics drivers which were written for the fbdev
+graphics interface.
+
+On modern machines, on mainstream machines (like x86-64) or when
+using a modern Linux distribution those fbdev drivers usually aren't used.
+So enabling this option wouldn't have any effect, which is why you want
+to disable this option on such newer machines.
+
+If you compile this kernel for older machines which still require the
+fbdev drivers, you may want to say Y.
+
+If unsure, select n.
+
+Symbol: FRAMEBUFFER_CONSOLE_LEGACY_ACCELERATION [=n]
+Type  : bool
+Defined at drivers/video/console/Kconfig:81
+  Prompt: Enable legacy fbcon hardware acceleration code
+  Depends on: VT [=y] && FRAMEBUFFER_CONSOLE [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Graphics support
+          -> Console display driver support
+            -> Framebuffer Console support (FRAMEBUFFER_CONSOLE [=y])
+
+
+
+  Enable legacy fbcon hardware acceleration code (FRAMEBUFFER_CONSOLE_LEGACY_ACCELERATION) [N/y/?] (NEW)
+--------------
+erm N? but in snd-hda-intel? what if i need it?
+ Build Cirrus Logic HDA bridge support (SND_HDA_CODEC_CS8409) [N/m/y/?] (NEW) ?
+
+CONFIG_SND_HDA_CODEC_CS8409:
+
+Say Y or M here to include Cirrus Logic HDA bridge support in
+snd-hda-intel driver, such as CS8409.
+
+Symbol: SND_HDA_CODEC_CS8409 [=n]
+--------------
+y it is then:
+CONFIG_DMABUF_SYSFS_STATS:
+
+Choose this option to enable DMA-BUF sysfs statistics
+in location /sys/kernel/dmabuf/buffers.
+
+/sys/kernel/dmabuf/buffers/<inode_number> will contain
+statistics for the DMA-BUF with the unique inode number
+<inode_number>.
+
+Symbol: DMABUF_SYSFS_STATS [=n]
+Type  : bool
+Defined at drivers/dma-buf/Kconfig:77
+  Prompt: DMA-BUF sysfs statistics
+  Depends on: DMA_SHARED_BUFFER [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> DMABUF options
+
+
+
+DMA-BUF sysfs statistics (DMABUF_SYSFS_STATS) [N/y/?] (NEW) y
+--------------
+maybe z575 has it?
+CONFIG_WIRELESS_HOTKEY:
+
+This driver provides supports for the wireless buttons found on some AMD,
+HP, & Xioami laptops.
+On such systems the driver should load automatically (via ACPI alias).
+
+To compile this driver as a module, choose M here: the module will
+be called wireless-hotkey.
+
+Symbol: WIRELESS_HOTKEY [=n]
+Type  : tristate
+Defined at drivers/platform/x86/Kconfig:457
+  Prompt: Wireless hotkey button
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && ACPI [=y] && INPUT [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+
+
+
+  Wireless hotkey button (WIRELESS_HOTKEY) [N/m/y/?] (NEW) m
+--------------
+interesting... hmm: N for now, but maybe z575 has this ability?
+CONFIG_THINKPAD_LMI:
+
+This driver allows changing BIOS settings on Lenovo machines whose
+BIOS support the WMI interface.
+
+To compile this driver as a module, choose M here: the module will
+be called think-lmi.
+
+Symbol: THINKPAD_LMI [=n]
+Type  : tristate
+Defined at drivers/platform/x86/Kconfig:686
+  Prompt: Lenovo WMI-based systems management driver
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && ACPI_WMI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+Selects: FW_ATTR_CLASS [=n]
+
+
+
+  Lenovo WMI-based systems management driver (THINKPAD_LMI) [N/m/y/?] (NEW) 
+--------------
+probably not needed but keeping =m for now, TODO: maybe set to =N is not needed
+CONFIG_INTEL_SKL_INT3472:
+
+This driver adds power controller support for the Intel SkyCam
+devices found on the Intel SkyLake platforms.
+
+The INT3472 is a camera power controller, a logical device found on
+Intel Skylake-based systems that can map to different hardware
+devices depending on the platform. On machines designed for Chrome OS
+it maps to a TPS68470 camera PMIC. On machines designed for Windows,
+it maps to either a TP68470 camera PMIC, a uP6641Q sensor PMIC, or a
+set of discrete GPIOs and power gates.
+
+If your device was designed for Chrome OS, this driver will provide
+an ACPI OpRegion, which must be available before any of the devices
+using it are probed. For this reason, you should select Y if your
+device was designed for ChromeOS. For the same reason the
+I2C_DESIGNWARE_PLATFORM option must be set to Y too.
+
+Say Y or M here if you have a SkyLake device designed for use
+with Windows or ChromeOS. Say N here if you are not sure.
+
+The module will be named "intel-skl-int3472".
+
+Symbol: INTEL_SKL_INT3472 [=n]
+Type  : tristate
+Defined at drivers/platform/x86/intel/int3472/Kconfig:1
+  Prompt: Intel SkyLake ACPI INT3472 Driver
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && ACPI [=y] && COMMON_CLK [=y] && I2C [=y] && GPIOLIB [=y] && REGULATOR [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+Selects: MFD_CORE [=y] && REGMAP_I2C [=y]
+
+
+
+  Intel SkyLake ACPI INT3472 Driver (INTEL_SKL_INT3472) [N/m/y/?] (NEW) m
+--------------
+TODO: unsure if this is somethink I may have on Skylake too? keeping N then
+CONFIG_INTEL_ISHTP_ECLITE:
+
+This driver is for accessing the PSE (Programmable Service Engine) -
+an Embedded Controller like IP - using ISHTP (Integrated Sensor Hub
+Transport Protocol) to get battery, thermal and UCSI (USB Type-C
+Connector System Software Interface) related data from the platform.
+Users who don't want to use discrete Embedded Controller on Intel's
+Elkhartlake platform can leverage this integrated solution of
+ECLite which is part of PSE subsystem.
+
+To compile this driver as a module, choose M here: the module
+will be called intel_ishtp_eclite.
+
+Symbol: INTEL_ISHTP_ECLITE [=n]
+Type  : tristate
+Defined at drivers/platform/x86/intel/Kconfig:92
+  Prompt: Intel ISHTP eclite controller Driver
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && INTEL_ISH_HID [=y] && ACPI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+
+
+
+  Intel ISHTP eclite controller Driver (INTEL_ISHTP_ECLITE) [N/m/y/?] (NEW) 
+--------------
+TODO: wth is this?
+CONFIG_INTEL_VSEC:
+
+Adds support for feature drivers exposed using Intel PCIe VSEC and
+DVSEC.
+
+To compile this driver as a module, choose M here: the module will
+be called intel_vsec.
+
+Symbol: INTEL_VSEC [=n]
+Type  : tristate
+Defined at drivers/platform/x86/intel/Kconfig:174
+  Prompt: Intel Vendor Specific Extended Capabilities Driver
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && PCI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+Selects: AUXILIARY_BUS [=n]
+
+
+
+  Intel Vendor Specific Extended Capabilities Driver (INTEL_VSEC) [N/m/y/?] (NEW) 
+--------------
+so N to this becuase it's using a package instead to mount which is better iirc
+NTFS Read-Write file system support (NTFS3_FS) [N/m/y/?] (NEW) ?
+
+CONFIG_NTFS3_FS:
+
+Windows OS native file system (NTFS) support up to NTFS version 3.1.
+
+Y or M enables the NTFS3 driver with full features enabled (read,
+write, journal replaying, sparse/compressed files support).
+File system type to use on mount is "ntfs3". Module name (M option)
+is also "ntfs3".
+
+Documentation: <file:Documentation/filesystems/ntfs3.rst>
+
+Symbol: NTFS3_FS [=n]
+Type  : tristate
+Defined at fs/ntfs3/Kconfig:2
+  Prompt: NTFS Read-Write file system support
+  Depends on: BLOCK [=y]
+  Location:
+    Main menu
+      -> File systems
+        -> DOS/FAT/EXFAT/NT Filesystems
+Selects: NLS [=y]
+
+
+Default freeing vmemmap pages of HugeTLB to on (HUGETLB_PAGE_FREE_VMEMMAP_DEFAULT_ON) [N/y/?] (NEW) ?
+
+CONFIG_HUGETLB_PAGE_FREE_VMEMMAP_DEFAULT_ON:
+
+When using HUGETLB_PAGE_FREE_VMEMMAP, the freeing unused vmemmap
+pages associated with each HugeTLB page is default off. Say Y here
+to enable freeing vmemmap pages of HugeTLB by default. It can then
+be disabled on the command line via hugetlb_free_vmemmap=off.
+
+Symbol: HUGETLB_PAGE_FREE_VMEMMAP_DEFAULT_ON [=n]
+Type  : bool
+Defined at fs/Kconfig:253
+  Prompt: Default freeing vmemmap pages of HugeTLB to on
+  Depends on: HUGETLB_PAGE_FREE_VMEMMAP [=y]
+  Location:
+    Main menu
+      -> File systems
+        -> Pseudo filesystems
+
+
+
+Default freeing vmemmap pages of HugeTLB to on (HUGETLB_PAGE_FREE_VMEMMAP_DEFAULT_ON) [N/y/?] (NEW) 
+NTFS Read-Write file system support (NTFS3_FS) [N/m/y/?] (NEW) 
+--------------
+#security safety and this makes things 1% slower then...
+chose Y for now! FIXME: set to N to get more speed!
+
+Enable register zeroing on function exit (ZERO_CALL_USED_REGS) [N/y/?] (NEW) ?
+
+CONFIG_ZERO_CALL_USED_REGS:
+
+At the end of functions, always zero any caller-used register
+contents. This helps ensure that temporary values are not
+leaked beyond the function boundary. This means that register
+contents are less likely to be available for side channels
+and information exposures. Additionally, this helps reduce the
+number of useful ROP gadgets by about 20% (and removes compiler
+generated "write-what-where" gadgets) in the resulting kernel
+image. This has a less than 1% performance impact on most
+workloads. Image size growth depends on architecture, and should
+be evaluated for suitability. For example, x86_64 grows by less
+than 1%, and arm64 grows by about 5%.
+
+Symbol: ZERO_CALL_USED_REGS [=n]
+Type  : bool
+Defined at security/Kconfig.hardening:241
+  Prompt: Enable register zeroing on function exit
+  Depends on: CC_HAS_ZERO_CALL_USED_REGS [=y]
+  Location:
+    Main menu
+      -> Security options
+        -> Kernel hardening options
+          -> Memory initialization
+Selected by [n]:
+  - GENTOO_KERNEL_SELF_PROTECTION_COMMON [=n] && GENTOO_KERNEL_SELF_PROTECTION [=n] && GENTOO_LINUX [=y] && !ACPI_CUSTOM_METHOD [=n] && !COMPAT_BRK [=n] && !PROC_KCORE [=y] && !COMPAT_VDSO [=n] && !KEXEC [=y] && !HIBERNATION [=n] && !LEGACY_PTYS [=n] && !X86_X32 [=n] && !MODIFY_LDT_SYSCALL [=n] && GCC_PLUGINS [=y] && !IOMMU_DEFAULT_DMA_LAZY [=y] && !IOMMU_DEFAULT_PASSTHROUGH [=n] && IOMMU_DEFAULT_DMA_STRICT [=n] && CC_HAS_ZERO_CALL_USED_REGS [=y]
+
+
+
+Enable register zeroing on function exit (ZERO_CALL_USED_REGS) [N/y/?] (NEW) 
+--------------
+for tracking, N for now:
+*
+* Networking Debugging
+*
+Enable net device refcount tracking (NET_DEV_REFCNT_TRACKER) [N/y/?] (NEW) ?
+
+CONFIG_NET_DEV_REFCNT_TRACKER:
+
+Enable debugging feature to track device references.
+This adds memory and cpu costs.
+
+Symbol: NET_DEV_REFCNT_TRACKER [=n]
+Type  : bool
+Defined at net/Kconfig.debug:3
+  Prompt: Enable net device refcount tracking
+  Depends on: DEBUG_KERNEL [=y] && STACKTRACE_SUPPORT [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Networking Debugging
+Selects: REF_TRACKER [=n]
+
+
+
+Enable net device refcount tracking (NET_DEV_REFCNT_TRACKER) [N/y/?] (NEW) 
+
+see also CONFIG_NET_NS_REFCNT_TRACKER: !
+--------------
+enabled for safety and security but it's slower:
+Check for invalid mappings in user page tables (PAGE_TABLE_CHECK) [N/y/?] (NEW) ?
+
+CONFIG_PAGE_TABLE_CHECK:
+
+Check that anonymous page is not being mapped twice with read write
+permissions. Check that anonymous and file pages are not being
+erroneously shared. Since the checking is performed at the time
+entries are added and removed to user page tables, leaking, corruption
+and double mapping problems are detected synchronously.
+
+If unsure say "n".
+
+Symbol: PAGE_TABLE_CHECK [=n]
+Type  : bool
+Defined at mm/Kconfig.debug:65
+  Prompt: Check for invalid mappings in user page tables
+  Depends on: ARCH_SUPPORTS_PAGE_TABLE_CHECK [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Memory Debugging
+Selects: PAGE_EXTENSION [=n]
+
+
+
+Check for invalid mappings in user page tables (PAGE_TABLE_CHECK) [N/y/?] (NEW) y
+but don't PAGE_TABLE_CHECK_ENFORCED because we do that on kernel cmdline via page_table_check=on
+--------------
+good new tests:
+CONFIG_TEST_REF_TRACKER:
+
+This option provides a kernel module performing tests
+using reference tracker infrastructure.
+
+Say N if you are unsure.
+
+Symbol: TEST_REF_TRACKER [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2118
+  Prompt: Self test for reference tracker
+  Depends on: RUNTIME_TESTING_MENU [=y] && DEBUG_KERNEL [=y] && STACKTRACE_SUPPORT [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Kernel Testing and Coverage
+          -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+Selects: REF_TRACKER [=n]
+
+
+
+  Self test for reference tracker (TEST_REF_TRACKER) [N/m/y/?] (NEW) y
+
+There is no help available for this option.
+Symbol: TEST_SCANF [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2202
+  Prompt: Test scanf() family of functions at runtime
+  Depends on: RUNTIME_TESTING_MENU [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Kernel Testing and Coverage
+          -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+
+
+
+  Test scanf() family of functions at runtime (TEST_SCANF) [N/m/y/?] (NEW) y
+
+CONFIG_TEST_SIPHASH:
+
+Enable this option to test the kernel's siphash (<linux/siphash.h>) hash
+functions on boot (or module load).
+
+This is intended to help people writing architecture-specific
+optimized versions.  If unsure, say N.
+
+Symbol: TEST_SIPHASH [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2228
+  Prompt: Perform selftest on siphash functions
+  Depends on: RUNTIME_TESTING_MENU [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Kernel Testing and Coverage
+          -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+
+
+
+  Perform selftest on siphash functions (TEST_SIPHASH) [N/m/y/?] (NEW) y
+  Test clocksource watchdog in kernel space (TEST_CLOCKSOURCE_WATCHDOG) [N/m/y/?] (NEW) ?
+
+CONFIG_TEST_CLOCKSOURCE_WATCHDOG:
+
+Enable this option to create a kernel module that will trigger
+a test of the clocksource watchdog.  This module may be loaded
+via modprobe or insmod in which case it will run upon being
+loaded, or it may be built in, in which case it will run
+shortly after boot.
+
+If unsure, say N.
+
+Symbol: TEST_CLOCKSOURCE_WATCHDOG [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2648
+  Prompt: Test clocksource watchdog in kernel space
+  Depends on: RUNTIME_TESTING_MENU [=y] && CLOCKSOURCE_WATCHDOG [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Kernel Testing and Coverage
+          -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+
+
+
+  Test clocksource watchdog in kernel space (TEST_CLOCKSOURCE_WATCHDOG) [N/m/y/?] (NEW) 
+--------------
+TODO: see what happens if =y this? it's =n for now:
+*
+* Kernel Self Protection Project
+*
+Kernel Self Protection Project (GENTOO_KERNEL_SELF_PROTECTION) [N/y/?] (NEW) ?
+
+CONFIG_GENTOO_KERNEL_SELF_PROTECTION:
+
+Recommended Kernel settings based on the suggestions from the Kernel Self Protection Project
+See: https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
+Note, there may be additional settings for which the CONFIG_ setting is invisible in menuconfig due
+to unmet dependencies. Search for GENTOO_KERNEL_SELF_PROTECTION_COMMON and search for
+GENTOO_KERNEL_SELF_PROTECTION_{X86_64, ARM64, X86_32, ARM} for dependency information on your
+specific architecture.
+Note 2: Please see the URL above for numeric settings, e.g. CONFIG_DEFAULT_MMAP_MIN_ADDR=65536
+for X86_64
+
+Symbol: GENTOO_KERNEL_SELF_PROTECTION [=n]
+Type  : bool
+Defined at distro/Kconfig:160
+  Prompt: Kernel Self Protection Project
+  Depends on: GENTOO_LINUX [=y]
+  Location:
+    Main menu
+      -> Gentoo Linux
+
+
+
+Kernel Self Protection Project (GENTOO_KERNEL_SELF_PROTECTION) [N/y/?] (NEW) 
+--------------
+what the? TODO:
+default chosen
+stack depot hash size (12 => 4KB, 20 => 1024KB) (STACK_HASH_ORDER) [20] (NEW) ?
+
+CONFIG_STACK_HASH_ORDER:
+
+Select the hash size as a power of 2 for the stackdepot hash table.
+Choose a lower value to reduce the memory impact.
+
+Symbol: STACK_HASH_ORDER [=20]
+Type  : integer
+Range : [12 20]
+Defined at lib/Kconfig:676
+  Prompt: stack depot hash size (12 => 4KB, 20 => 1024KB)
+  Depends on: STACKDEPOT [=y]
+  Location:
+    Main menu
+      -> Library routines
+
+
+
+stack depot hash size (12 => 4KB, 20 => 1024KB) (STACK_HASH_ORDER) [20] (NEW) 
+--------------
+  for docker:
+   * Messages for package app-containers/docker-20.10.16:
+ * Log file: /tmp/ebuild.logs/build/app-containers/docker-20.10.16:20220607-132602.log
+
+ *   CONFIG_VETH:        is not set when it should be.
+ *   CONFIG_BRIDGE:      is not set when it should be.
+ *   CONFIG_BRIDGE_NETFILTER:    is not set when it should be.
+ *   CONFIG_NETFILTER_XT_MATCH_IPVS:     is not set when it should be.
+ *   CONFIG_IP_VS:       is not set when it should be.
+ *   CONFIG_IP_VS_PROTO_TCP:     is not set when it should be.
+ *   CONFIG_IP_VS_PROTO_UDP:     is not set when it should be.
+ *   CONFIG_IP_VS_NFCT:  is not set when it should be.
+ *   CONFIG_IP_VS_RR:    is not set when it should be.
+ *   CONFIG_VXLAN:       is not set when it should be.
+ *   CONFIG_XFRM_ALGO: is optional for secure networks
+ *   CONFIG_XFRM_USER: is optional for secure networks
+ *   CONFIG_IPVLAN:      is not set when it should be.
+ *   CONFIG_MACVLAN:     is not set when it should be.
+ *   CONFIG_DUMMY:       is not set when it should be.
+ *   CONFIG_OVERLAY_FS:  is not set when it should be.
+ * Please check to make sure these options are set correctly.
+ * Failure to do so may cause unexpected problems.
+
+$ /usr/share/docker/contrib/check-config.sh
+info: reading kernel config from /proc/config.gz ...
+
+Generally Necessary:
+- cgroup hierarchy: properly mounted [/sys/fs/cgroup]
+- CONFIG_NAMESPACES: enabled
+- CONFIG_NET_NS: enabled
+- CONFIG_PID_NS: enabled
+- CONFIG_IPC_NS: enabled
+- CONFIG_UTS_NS: enabled
+- CONFIG_CGROUPS: enabled
+- CONFIG_CGROUP_CPUACCT: enabled
+- CONFIG_CGROUP_DEVICE: enabled
+- CONFIG_CGROUP_FREEZER: enabled
+- CONFIG_CGROUP_SCHED: enabled
+- CONFIG_CPUSETS: enabled
+- CONFIG_MEMCG: enabled
+- CONFIG_KEYS: enabled
+- CONFIG_VETH: missing
+- CONFIG_BRIDGE: missing
+- CONFIG_BRIDGE_NETFILTER: missing
+- CONFIG_IP_NF_FILTER: enabled
+- CONFIG_IP_NF_TARGET_MASQUERADE: enabled
+- CONFIG_NETFILTER_XT_MATCH_ADDRTYPE: enabled
+- CONFIG_NETFILTER_XT_MATCH_CONNTRACK: enabled
+- CONFIG_NETFILTER_XT_MATCH_IPVS: missing
+- CONFIG_NETFILTER_XT_MARK: enabled
+- CONFIG_IP_NF_NAT: enabled
+- CONFIG_NF_NAT: enabled
+- CONFIG_POSIX_MQUEUE: enabled
+
+Optional Features:
+- CONFIG_USER_NS: enabled
+- CONFIG_SECCOMP: enabled
+- CONFIG_CGROUP_PIDS: enabled
+- CONFIG_MEMCG_SWAP: enabled
+    (cgroup swap accounting is currently enabled)
+- CONFIG_LEGACY_VSYSCALL_NONE: enabled
+    (containers using eglibc <= 2.13 will not work. Switch to
+     "CONFIG_VSYSCALL_[NATIVE|EMULATE]" or use "vsyscall=[native|emulate]"
+     on kernel command line. Note that this will disable ASLR for the,
+     VDSO which may assist in exploiting security vulnerabilities.)
+- CONFIG_BLK_CGROUP: enabled
+- CONFIG_BLK_DEV_THROTTLING: enabled
+- CONFIG_CGROUP_PERF: enabled
+- CONFIG_CGROUP_HUGETLB: enabled
+- CONFIG_NET_CLS_CGROUP: enabled
+- CONFIG_CGROUP_NET_PRIO: enabled
+- CONFIG_CFS_BANDWIDTH: enabled
+- CONFIG_FAIR_GROUP_SCHED: enabled
+- CONFIG_RT_GROUP_SCHED: missing
+- CONFIG_IP_NF_TARGET_REDIRECT: enabled
+- CONFIG_IP_VS: missing
+- CONFIG_IP_VS_NFCT: missing
+- CONFIG_IP_VS_PROTO_TCP: missing
+- CONFIG_IP_VS_PROTO_UDP: missing
+- CONFIG_IP_VS_RR: missing
+- CONFIG_EXT4_FS: enabled
+- CONFIG_EXT4_FS_POSIX_ACL: enabled
+- CONFIG_EXT4_FS_SECURITY: enabled
+- Network Drivers:
+  - "overlay":
+    - CONFIG_VXLAN: missing
+    - CONFIG_BRIDGE_VLAN_FILTERING: missing
+      Optional (for encrypted networks):
+      - CONFIG_CRYPTO: enabled
+      - CONFIG_CRYPTO_AEAD: enabled
+      - CONFIG_CRYPTO_GCM: enabled
+      - CONFIG_CRYPTO_SEQIV: enabled
+      - CONFIG_CRYPTO_GHASH: enabled
+      - CONFIG_XFRM: missing
+      - CONFIG_XFRM_USER: missing
+      - CONFIG_XFRM_ALGO: missing
+      - CONFIG_INET_ESP: missing
+  - "ipvlan":
+    - CONFIG_IPVLAN: missing
+  - "macvlan":
+    - CONFIG_MACVLAN: missing
+    - CONFIG_DUMMY: missing
+  - "ftp,tftp client in container":
+    - CONFIG_NF_NAT_FTP: enabled
+    - CONFIG_NF_CONNTRACK_FTP: enabled
+    - CONFIG_NF_NAT_TFTP: enabled
+    - CONFIG_NF_CONNTRACK_TFTP: enabled
+- Storage Drivers:
+  - "aufs":
+    - CONFIG_AUFS_FS: missing
+  - "btrfs":
+    - CONFIG_BTRFS_FS: enabled
+    - CONFIG_BTRFS_FS_POSIX_ACL: enabled
+  - "devicemapper":
+    - CONFIG_BLK_DEV_DM: enabled
+    - CONFIG_DM_THIN_PROVISIONING: missing
+  - "overlay":
+    - CONFIG_OVERLAY_FS: missing
+  - "zfs":
+    - /dev/zfs: missing
+    - zfs command: missing
+    - zpool command: missing
+
+Limits:
+- /proc/sys/kernel/keys/root_maxkeys: 1000000
+--------------
+  iotop needs: CONFIG_TASK_DELAY_ACCT not enabled in kernel, cannot determine SWAPIN and IO %
+  hmm ok it is enabled but still says that hmm iotop 0.6
+  "At least the CONFIG_TASK_DELAY_ACCT, CONFIG_TASK_IO_ACCOUNTING, CONFIG_TASKSTATS and CONFIG_VM_EVENT_COUNTERS options  need  to be enabled in your Linux kernel build configuration."
+  I have them all, still getting the "needs" msg!
+
+--------------
+  new in 5.17.15 or earlier:
+# CONFIG_INIT_STACK_ALL_PATTERN is not set
+  #^ that one isn't safe, don't use it! ie. uninited pointers aren't null by default.
+#the following kept for safety (also it seems to be the default):
+CONFIG_INIT_STACK_ALL_ZERO=y
+  This option enables initialization of stack variables at
+function entry time. This has the possibility to have the
+greatest coverage (since all functions can have their
+variables initialized), but the performance impact depends
+on the function calling complexity of a given workload's
+syscalls.
+
+This chooses the level of coverage over classes of potentially
+uninitialized variables. The selected class of variable will be
+initialized before use in a function.
+
+
+Defined at security/Kconfig.hardening:31
+  Prompt: Initialize kernel stack variables at function entry
+  Location:
+    Main menu
+      -> Security options
+        -> Kernel hardening options
+          -> Memory initialization
+Selected by [m]:
+  - m
+
+
+
+Initialize kernel stack variables at function entry
+  1. no automatic stack variable initialization (weakest) (INIT_STACK_NONE)
+  2. pattern-init everything (strongest) (INIT_STACK_ALL_PATTERN) (NEW)
+> 3. zero-init everything (strongest and safest) (INIT_STACK_ALL_ZERO) (NEW)
+choice[1-3?]:
+
+
+--------------
+Untested, left at their defaults new things in 5.18.16 vs 5.17.15(yes _.x._ is different):
+  +CONFIG_CLOCKSOURCE_WATCHDOG_MAX_SKEW_US=100
+Clocksource watchdog maximum allowable skew (in μs) (CLOCKSOURCE_WATCHDOG_MAX_SKEW_US) [100] (NEW) 
+
+  **
+*
+* Binary Emulations
+*
+IA32 Emulation (IA32_EMULATION) [Y/n/?] y
+x32 ABI for 64-bit mode (X86_X32_ABI) [N/y/?] (NEW) ?
+
+CONFIG_X86_X32_ABI:
+
+Include code to run binaries for the x32 native 32-bit ABI
+for 64-bit processors.  An x32 process gets access to the
+full 64-bit register file and wide data path while leaving
+pointers at 32 bits for smaller memory footprint.
+
+Symbol: X86_X32_ABI [=n]
+Type  : bool
+Defined at arch/x86/Kconfig:2909
+  Prompt: x32 ABI for 64-bit mode
+  Depends on: X86_64 [=y] && y
+  Location:
+    Main menu
+      -> Binary Emulations
+
+
+
+x32 ABI for 64-bit mode (X86_X32_ABI) [N/y/?] (NEW) 
+
+
+  * ***
+* For security, default is Y anyway:  for speed, disable or via cmdline!
+  
+Support for randomizing kernel stack offset on syscall entry (RANDOMIZE_KSTACK_OFFSET) [Y/n/?] (NEW) 
+  CONFIG_RANDOMIZE_KSTACK_OFFSET:
+
+The kernel stack offset can be randomized (after pt_regs) by
+roughly 5 bits of entropy, frustrating memory corruption
+attacks that depend on stack address determinism or
+cross-syscall address exposures.
+
+The feature is controlled via the "randomize_kstack_offset=on/off"
+kernel boot param, and if turned off has zero overhead due to its use
+of static branches (see JUMP_LABEL).
+
+If unsure, say Y.
+
+Symbol: RANDOMIZE_KSTACK_OFFSET [=y]
+Type  : bool
+Defined at arch/Kconfig:1173
+  Prompt: Support for randomizing kernel stack offset on syscall entry
+  Depends on: HAVE_ARCH_RANDOMIZE_KSTACK_OFFSET [=y] && (INIT_STACK_NONE [=n] || !CC_IS_CLANG [=n] || CLANG_VERSION [=0]>=140000)
+  Visible if: HAVE_ARCH_RANDOMIZE_KSTACK_OFFSET [=y] && (INIT_STACK_NONE [=n] || !CC_IS_CLANG [=n] || CLANG_VERSION [=0]>=140000) && EXPERT [=y]
+  Location:
+    Main menu
+      -> General architecture-dependent options
+
+CONFIG_PAGE_POOL_STATS:
+
+Enable page pool statistics to track page allocation and recycling
+in page pools. This option incurs additional CPU cost in allocation
+and recycle paths and additional memory cost to store the statistics.
+These statistics are only available if this option is enabled and if
+the driver using the page pool supports exporting this data.
+
+If unsure, say N.
+
+Symbol: PAGE_POOL_STATS [=n]
+Type  : bool
+Defined at net/Kconfig:437
+  Prompt: Page pool stats
+  Depends on: NET [=y] && PAGE_POOL [=y]
+  Location:
+    Main menu
+      -> Networking support (NET [=y])
+
+
+
+  Page pool stats (PAGE_POOL_STATS) [N/y/?] (NEW) 
+
+Simple Multi-Functional Device support (I2C) (MFD_SIMPLE_MFD_I2C) [N/m/y/?] (NEW) ?
+
+CONFIG_MFD_SIMPLE_MFD_I2C:
+
+This driver creates a single register map with the intention for it
+to be shared by all sub-devices.
+
+Once the register map has been successfully initialised, any
+sub-devices represented by child nodes in Device Tree will be
+subsequently registered.
+
+Symbol: MFD_SIMPLE_MFD_I2C [=n]
+Type  : tristate
+Defined at drivers/mfd/Kconfig:1204
+  Prompt: Simple Multi-Functional Device support (I2C)
+  Depends on: HAS_IOMEM [=y] && I2C [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Multifunction device drivers
+Selects: MFD_CORE [=y] && REGMAP_I2C [=y]
+Selected by [n]:
+  - MFD_SL28CPLD [=n] && HAS_IOMEM [=y] && I2C [=y] && (ARCH_LAYERSCAPE || COMPILE_TEST [=n])
+
+
+
+Simple Multi-Functional Device support (I2C) (MFD_SIMPLE_MFD_I2C) [N/m/y/?] (NEW) 
+
+**
+*
+* Media platform devices
+*
+Media platform devices (MEDIA_PLATFORM_DRIVERS) [Y/n/?] (NEW) ?
+
+CONFIG_MEDIA_PLATFORM_DRIVERS:
+
+Say Y here to enable support for platform-specific media drivers.
+
+Symbol: MEDIA_PLATFORM_DRIVERS [=y]
+Type  : bool
+Defined at drivers/media/platform/Kconfig:6
+  Prompt: Media platform devices
+  Depends on: MEDIA_SUPPORT [=m] && MEDIA_PLATFORM_SUPPORT [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Multimedia support (MEDIA_SUPPORT [=m])
+          -> Media drivers
+
+
+
+Media platform devices (MEDIA_PLATFORM_DRIVERS) [Y/n/?] (NEW) 
+
+**
+*
+* PECI support
+*
+PECI support (PECI) [N/m/y/?] (NEW) ?
+
+CONFIG_PECI:
+
+The Platform Environment Control Interface (PECI) is an interface
+that provides a communication channel to Intel processors and
+chipset components from external monitoring or control devices.
+
+If you are building a Baseboard Management Controller (BMC) kernel
+for Intel platform say Y here and also to the specific driver for
+your adapter(s) below. If unsure say N.
+
+This support is also available as a module. If so, the module
+will be called peci.
+
+Symbol: PECI [=n]
+Type  : tristate
+Defined at drivers/peci/Kconfig:3
+  Prompt: PECI support
+  Location:
+    Main menu
+      -> Device Drivers
+
+
+
+PECI support (PECI) [N/m/y/?] (NEW) 
+
+**
+CONFIG_F2FS_UNFAIR_RWSEM:
+
+Use unfair rw_semaphore, if system configured IO priority by block
+cgroup.
+
+Symbol: F2FS_UNFAIR_RWSEM [=n]
+Type  : bool
+Defined at fs/f2fs/Kconfig:147
+  Prompt: F2FS unfair rw_semaphore
+  Depends on: BLOCK [=y] && F2FS_FS [=y] && BLK_CGROUP [=y]
+  Location:
+    Main menu
+      -> File systems
+        -> F2FS filesystem support (F2FS_FS [=y])
+
+
+
+  F2FS unfair rw_semaphore (F2FS_UNFAIR_RWSEM) [N/y/?] (NEW) 
+
+**
+
+  Report stack depth analysis instrumentation (GCC_PLUGIN_STACKLEAK_VERBOSE) [N/y/?] (NEW) ?
+
+CONFIG_GCC_PLUGIN_STACKLEAK_VERBOSE:
+
+This option will cause a warning to be printed each time the
+stackleak plugin finds a function it thinks needs to be
+instrumented. This is useful for comparing coverage between
+builds.
+
+Symbol: GCC_PLUGIN_STACKLEAK_VERBOSE [=n]
+Type  : bool
+Defined at security/Kconfig.hardening:177
+  Prompt: Report stack depth analysis instrumentation
+  Depends on: GCC_PLUGIN_STACKLEAK [=y] && !COMPILE_TEST [=n]
+  Visible if: GCC_PLUGIN_STACKLEAK [=y] && !COMPILE_TEST [=n] && EXPERT [=y]
+  Location:
+    Main menu
+      -> Security options
+        -> Kernel hardening options
+          -> Memory initialization
+            -> Poison kernel stack before returning from syscalls (GCC_PLUGIN_STACKLEAK [=y])
+
+
+
+  Report stack depth analysis instrumentation (GCC_PLUGIN_STACKLEAK_VERBOSE) [N/y/?] (NEW)  
+
+**
+    Support for RFC 7919 FFDHE group parameters (CRYPTO_DH_RFC7919_GROUPS) [N/y/?] (NEW) ?
+
+CONFIG_CRYPTO_DH_RFC7919_GROUPS:
+
+Provide support for RFC 7919 FFDHE group parameters. If unsure, say N.
+
+Symbol: CRYPTO_DH_RFC7919_GROUPS [=n]
+Type  : bool
+Defined at crypto/Kconfig:235
+  Prompt: Support for RFC 7919 FFDHE group parameters
+  Depends on: CRYPTO [=y] && CRYPTO_DH [=y]
+  Location:
+    Main menu
+      -> Cryptographic API (CRYPTO [=y])
+        -> Diffie-Hellman algorithm (CRYPTO_DH [=y])
+Selects: CRYPTO_RNG_DEFAULT [=y]
+
+
+
+    Support for RFC 7919 FFDHE group parameters (CRYPTO_DH_RFC7919_GROUPS) [N/y/?] (NEW) 
+
+**
+  SM3 digest algorithm (x86_64/AVX) (CRYPTO_SM3_AVX_X86_64) [N/m/y/?] (NEW) ?
+
+CONFIG_CRYPTO_SM3_AVX_X86_64:
+
+SM3 secure hash function as defined by OSCCA GM/T 0004-2012 SM3).
+It is part of the Chinese Commercial Cryptography suite. This is
+SM3 optimized implementation using Advanced Vector Extensions (AVX)
+when available.
+
+If unsure, say N.
+
+Symbol: CRYPTO_SM3_AVX_X86_64 [=n]
+Type  : tristate
+Defined at crypto/Kconfig:1025
+  Prompt: SM3 digest algorithm (x86_64/AVX)
+  Depends on: CRYPTO [=y] && X86 [=y] && 64BIT [=y]
+  Location:
+    Main menu
+      -> Cryptographic API (CRYPTO [=y])
+Selects: CRYPTO_HASH [=y] && CRYPTO_LIB_SM3 [=n]
+
+
+
+  SM3 digest algorithm (x86_64/AVX) (CRYPTO_SM3_AVX_X86_64) [N/m/y/?] (NEW) 
+
+**
+
+unsure if I had this set on DWARF4 specifically, or maybe this version is needed by the 'crash' utility?
+*
+* Compile-time checks and compiler options
+*
+Debug information
+  1. Disable debug information (DEBUG_INFO_NONE) (NEW)
+  2. Rely on the toolchain's implicit default DWARF version (DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT)
+> 3. Generate DWARF Version 4 debuginfo (DEBUG_INFO_DWARF4)
+  4. Generate DWARF Version 5 debuginfo (DEBUG_INFO_DWARF5)
+choice[1-4?]: ?
+
+Selecting something other than "None" results in a kernel image
+that will include debugging info resulting in a larger kernel image.
+This adds debug symbols to the kernel and modules (gcc -g), and
+is needed if you intend to use kernel crashdump or binary object
+tools like crash, kgdb, LKCD, gdb, etc on the kernel.
+
+Choose which version of DWARF debug info to emit. If unsure,
+select "Toolchain default".
+
+Defined at lib/Kconfig.debug:234
+  Prompt: Debug information
+  Depends on: DEBUG_KERNEL [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Compile-time checks and compiler options
+Selected by [m]:
+  - DEBUG_KERNEL [=y] && m
+
+
+
+Debug information
+  1. Disable debug information (DEBUG_INFO_NONE) (NEW)
+  2. Rely on the toolchain's implicit default DWARF version (DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT)
+> 3. Generate DWARF Version 4 debuginfo (DEBUG_INFO_DWARF4)
+  4. Generate DWARF Version 5 debuginfo (DEBUG_INFO_DWARF5)
+choice[1-4?]: 
+
+**
+
+TODO: for security?
+  Use a deferrable timer to trigger allocations (KFENCE_DEFERRABLE) [N/y/?] (NEW) ?
+
+CONFIG_KFENCE_DEFERRABLE:
+
+Use a deferrable timer to trigger allocations. This avoids forcing
+CPU wake-ups if the system is idle, at the risk of a less predictable
+sample interval.
+
+Warning: The KUnit test suite fails with this option enabled - due to
+the unpredictability of the sample interval!
+
+Say N if you are unsure.
+
+Symbol: KFENCE_DEFERRABLE [=n]
+Type  : bool
+Defined at lib/Kconfig.kfence:48
+  Prompt: Use a deferrable timer to trigger allocations
+  Depends on: KFENCE [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Memory Debugging
+          -> KFENCE: low-overhead sampling-based memory safety error detector (KFENCE [=y])
+
+
+
+  Use a deferrable timer to trigger allocations (KFENCE_DEFERRABLE) [N/y/?] (NEW) 
+
+--------------
+In 5.18.16 vs 5.17.15(yes 17 not 18):
+
+* disable for speed, enable for security
+  that's the default(N) ... choose Y for security, if CONFIG_RETPOLINE is also y
+  currently setting: CONFIG_X86_KERNEL_IBT=n
+
+  Indirect Branch Tracking (X86_KERNEL_IBT) [N/y/?] (NEW) ?
+
+CONFIG_X86_KERNEL_IBT:
+
+Build the kernel with support for Indirect Branch Tracking, a
+hardware support course-grain forward-edge Control Flow Integrity
+protection. It enforces that all indirect calls must land on
+an ENDBR instruction, as such, the compiler will instrument the
+code with them to make this happen.
+
+In addition to building the kernel with IBT, seal all functions that
+are not indirect call targets, avoiding them ever becoming one.
+
+This requires LTO like objtool runs and will slow down the build. It
+does significantly reduce the number of ENDBR instructions in the
+kernel image.
+
+Symbol: X86_KERNEL_IBT [=n]
+Type  : bool
+Defined at arch/x86/Kconfig:1834
+  Prompt: Indirect Branch Tracking
+  Depends on: X86_64 [=y] && CC_HAS_IBT [=y] && STACK_VALIDATION [=y] && (!LD_IS_LLD [=n] || LLD_VERSION [=0]>=140000)
+  Location:
+    Main menu
+      -> Processor type and features
+
+
+
+Indirect Branch Tracking (X86_KERNEL_IBT) [N/y/?] (NEW)
+
+
+* new thing: for security leave default aka =Y, else CONFIG_SPECULATION_MITIGATIONS=n TODO: for speed =N
+*
+* Mitigations for speculative execution vulnerabilities
+*
+Mitigations for speculative execution vulnerabilities (SPECULATION_MITIGATIONS) [Y/n/?] (NEW) ?
+
+CONFIG_SPECULATION_MITIGATIONS:
+
+Say Y here to enable options which enable mitigations for
+speculative execution hardware vulnerabilities.
+
+If you say N, all mitigations will be disabled. You really
+should know what you are doing to say so.
+
+Symbol: SPECULATION_MITIGATIONS [=y]
+Type  : bool
+Defined at arch/x86/Kconfig:2437
+  Prompt: Mitigations for speculative execution vulnerabilities
+  Location:
+    Main menu
+
+
+
+Mitigations for speculative execution vulnerabilities (SPECULATION_MITIGATIONS) [Y/n/?] (NEW) 
+
+
+  **
+
+  BLOCK_LEGACY_AUTOLOAD=N for now, default is Y:
+    Legacy autoloading support (BLOCK_LEGACY_AUTOLOAD) [Y/n/?] (NEW) ?
+
+CONFIG_BLOCK_LEGACY_AUTOLOAD:
+
+Enable loading modules and creating block device instances based on
+accesses through their device special file.  This is a historic Linux
+feature and makes no sense in a udev world where device files are
+created on demand, but scripts that manually create device nodes and
+then call losetup might rely on this behavior.
+
+Symbol: BLOCK_LEGACY_AUTOLOAD [=y]
+Type  : bool
+Defined at block/Kconfig:29
+  Prompt: Legacy autoloading support
+  Depends on: BLOCK [=y]
+  Location:
+    Main menu
+      -> Enable the block layer (BLOCK [=y])
+
+
+
+  Legacy autoloading support (BLOCK_LEGACY_AUTOLOAD) [Y/n/?] (NEW)
+
+ **
+
+  CONFIG_NVME_VERBOSE_ERRORS:
+
+This option enables verbose reporting for NVMe errors. The
+error translation table will grow the kernel image size by
+about 4 KB.
+
+Symbol: NVME_VERBOSE_ERRORS [=n]
+Type  : bool
+Defined at drivers/nvme/host/Kconfig:27
+  Prompt: NVMe verbose error reporting
+  Depends on: NVME_CORE [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> NVME Support
+
+
+
+NVMe verbose error reporting (NVME_VERBOSE_ERRORS) [N/y/?] (NEW) y
+
+
+  **
+
+  we gonna =Y this one:
+  because have some prev. ones on =y too:
+    ACPI 4.0 power meter (SENSORS_ACPI_POWER) [Y/n/m/?] y
+  ASUS ATK0110 (SENSORS_ATK0110) [N/m/y/?] n
+  ASUS WMI X370/X470/B450/X399 (SENSORS_ASUS_WMI) [Y/n/m/?] y
+  ASUS WMI B550/X570 (SENSORS_ASUS_WMI_EC) [Y/n/m/?] y
+
+  =y on this one, I meant:
+  CONFIG_SENSORS_ASUS_EC:
+
+If you say yes here you get support for the ACPI embedded controller
+hardware monitoring interface found in ASUS motherboards. The driver
+currently supports B550/X570 boards, although other ASUS boards might
+provide this monitoring interface as well.
+
+This driver can also be built as a module. If so, the module
+will be called asus_ec_sensors.
+
+Symbol: SENSORS_ASUS_EC [=n]
+Type  : tristate
+Defined at drivers/hwmon/Kconfig:2308
+  Prompt: ASUS EC Sensors
+  Depends on: HWMON [=y] && ACPI [=y] && X86 [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Hardware Monitoring support (HWMON [=y])
+
+
+
+  ASUS EC Sensors (SENSORS_ASUS_EC) [N/m/y/?] (NEW) y
+
+  **
+
+  choosing =Y for now, TODO: see if =N is needed:
+  Intel Hardware Feedback Interface (INTEL_HFI_THERMAL) [N/y/?] (NEW) ?
+
+CONFIG_INTEL_HFI_THERMAL:
+
+Select this option to enable the Hardware Feedback Interface. If
+selected, hardware provides guidance to the operating system on
+the performance and energy efficiency capabilities of each CPU.
+These capabilities may change as a result of changes in the operating
+conditions of the system such power and thermal limits. If selected,
+the kernel relays updates in CPUs' capabilities to userspace.
+
+Symbol: INTEL_HFI_THERMAL [=n]
+Type  : bool
+Defined at drivers/thermal/intel/Kconfig:103
+  Prompt: Intel Hardware Feedback Interface
+  Depends on: THERMAL [=y] && (X86 [=y] || X86_INTEL_QUARK [=n] || COMPILE_TEST [=n]) && NET [=y] && CPU_SUP_INTEL [=y] && X86_THERMAL_VECTOR [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Thermal drivers (THERMAL [=y])
+          -> Intel thermal drivers
+Selects: THERMAL_NETLINK [=n]
+
+
+
+Intel Hardware Feedback Interface (INTEL_HFI_THERMAL) [N/y/?] (NEW) y
+
+**
+TODO: does this do anything?
+Razer non-fully HID-compliant devices (HID_RAZER) [N/m/y/?] (NEW) ?
+
+CONFIG_HID_RAZER:
+
+Support for Razer devices that are not fully compliant with the
+HID standard.
+
+Symbol: HID_RAZER [=n]
+Type  : tristate
+Defined at drivers/hid/Kconfig:945
+  Prompt: Razer non-fully HID-compliant devices
+  Depends on: INPUT [=y] && HID [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> HID support
+          -> HID bus support (HID [=y])
+            -> Special HID drivers
+
+
+
+Razer non-fully HID-compliant devices (HID_RAZER) [N/m/y/?] (NEW) y
+
+**
+TODO: do I need this at all?
+  Serial bus multi instantiate pseudo device driver (SERIAL_MULTI_INSTANTIATE) [N/m/y/?] (NEW) ?
+
+CONFIG_SERIAL_MULTI_INSTANTIATE:
+
+Some ACPI-based systems list multiple devices in a single ACPI
+firmware-node. This driver will instantiate separate clients
+for each device in the firmware-node.
+
+To compile this driver as a module, choose M here: the module
+will be called serial-multi-instantiate.
+
+Symbol: SERIAL_MULTI_INSTANTIATE [=n]
+Type  : tristate
+Defined at drivers/platform/x86/Kconfig:1009
+  Prompt: Serial bus multi instantiate pseudo device driver
+  Depends on: X86 [=y] && X86_PLATFORM_DEVICES [=y] && I2C [=y] && SPI [=y] && ACPI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+
+
+
+  Serial bus multi instantiate pseudo device driver (SERIAL_MULTI_INSTANTIATE) [N/m/y/?] (NEW) m
+--------------
+Enable USB persist by default (USB_DEFAULT_PERSIST)
+
+CONFIG_USB_DEFAULT_PERSIST:
+
+Say N here if you don't want USB power session persistence
+enabled by default. If you say N it will make suspended USB
+devices that lose power get reenumerated as if they had been
+unplugged, causing any mounted filesystems to be lost. The
+persist feature can still be enabled for individual devices
+through the power/persist sysfs node. See
+Documentation/driver-api/usb/persist.rst for more info.
+
+If you have any questions about this, say Y here, only say N
+if you know exactly what you are doing.
+
+Symbol: USB_DEFAULT_PERSIST [=y]
+Type : bool
+Defined at drivers/usb/core/Kconfig:20
+Prompt: Enable USB persist by default
+Depends on: USB_SUPPORT [=y] && USB [=y]
+Location:
+Main menu
+-> Device Drivers
+-> USB support (USB_SUPPORT [=y])
+
+so this is always =Y but when I ever want to try that thing again where I can replug USB device via software, then I should try this to =N then suspend the device, and re-wake it(somehow), maybe it would work. Otherwise, wtw I'm doing with ~/bin/ko script for Razer Keyboard is still working with this =Y anywyay.
+--------------
+in Linux/x86 5.18.19-gentoo-r1 compared to Linux/x86 5.18.16-gentoo kernel:
+CONFIG_SCHED_CORE: default =N, keeping N, maybe good to be Y for security? perfomance should be unaffected though, they say.
+  Core Scheduling for SMT (SCHED_CORE) [N/y/?] (NEW) ?
+
+CONFIG_SCHED_CORE:
+
+This option permits Core Scheduling, a means of coordinated task
+selection across SMT siblings. When enabled -- see
+prctl(PR_SCHED_CORE) -- task selection ensures that all SMT siblings
+will execute a task from the same 'core group', forcing idle when no
+matching task is found.
+
+Use of this feature includes:
+ - mitigation of some (not all) SMT side channels;
+ - limiting SMT interference to improve determinism and/or performance.
+
+SCHED_CORE is default disabled. When it is enabled and unused,
+which is the likely usage by Linux distributions, there should
+be no measurable impact on performance.
+
+
+
+Symbol: SCHED_CORE [=n]
+Type  : bool
+Defined at kernel/Kconfig.preempt:118
+  Prompt: Core Scheduling for SMT
+  Depends on: SCHED_SMT [=y]
+  Location:
+    Main menu
+      -> General setup
+Selected by [n]:
+  - GENTOO_KERNEL_SELF_PROTECTION_COMMON [=n] && GENTOO_KERNEL_SELF_PROTECTION [=n] && GENTOO_LINUX [=y] && !ACPI_CUSTOM_METHOD [=n] && !COMPAT_BRK [=n] && !PROC_KCORE [=y] && !COMPAT_VDSO [=n] && !KEXEC [=y] && !HIBERNATION [=n] && !LEGACY_PTYS [=n] && !X86_X32 && !MODIFY_LDT_SYSCALL [=n] && GCC_PLUGINS [=y] && !IOMMU_DEFAULT_DMA_LAZY [=y] && !IOMMU_DEFAULT_PASSTHROUGH [=n] && IOMMU_DEFAULT_DMA_STRICT [=n] && SCHED_SMT [=y]
+
+
+
+Core Scheduling for SMT (SCHED_CORE) [N/y/?] (NEW)
+
+---
+
+Enable utilization clamping for RT/FAIR tasks (UCLAMP_TASK) [N/y/?] (NEW) ?
+
+CONFIG_UCLAMP_TASK:
+
+This feature enables the scheduler to track the clamped utilization
+of each CPU based on RUNNABLE tasks scheduled on that CPU.
+
+With this option, the user can specify the min and max CPU
+utilization allowed for RUNNABLE tasks. The max utilization defines
+the maximum frequency a task should use while the min utilization
+defines the minimum frequency it should use.
+
+Both min and max utilization clamp values are hints to the scheduler,
+aiming at improving its frequency selection policy, but they do not
+enforce or grant any specific bandwidth for tasks.
+
+If in doubt, say N.
+
+Symbol: UCLAMP_TASK [=n]
+Type  : bool
+Defined at init/Kconfig:826
+  Prompt: Enable utilization clamping for RT/FAIR tasks
+  Depends on: CPU_FREQ_GOV_SCHEDUTIL [=y]
+  Location:
+    Main menu
+      -> General setup
+        -> Scheduler features
+
+
+
+Enable utilization clamping for RT/FAIR tasks (UCLAMP_TASK) [N/y/?] (NEW)
+keeping at N
+---
+Interesting, but keeping at N:
+CPU controller (CGROUP_SCHED) [Y/n/?] y
+  Group scheduling for SCHED_OTHER (FAIR_GROUP_SCHED) [Y/n/?] y
+    CPU bandwidth provisioning for FAIR_GROUP_SCHED (CFS_BANDWIDTH) [N/y/?] (NEW) ?
+
+CONFIG_CFS_BANDWIDTH:
+
+This option allows users to define CPU bandwidth rates (limits) for
+tasks running within the fair group scheduler.  Groups with no limit
+set are considered to be unconstrained and will run with no
+restriction.
+See Documentation/scheduler/sched-bwc.rst for more information.
+
+Symbol: CFS_BANDWIDTH [=n]
+Type  : bool
+Defined at init/Kconfig:1020
+  Prompt: CPU bandwidth provisioning for FAIR_GROUP_SCHED
+  Depends on: CGROUPS [=y] && CGROUP_SCHED [=y] && FAIR_GROUP_SCHED [=y]
+  Location:
+    Main menu
+      -> General setup
+        -> Control Group support (CGROUPS [=y])
+          -> CPU controller (CGROUP_SCHED [=y])
+            -> Group scheduling for SCHED_OTHER (FAIR_GROUP_SCHED [=y])
+
+
+
+    CPU bandwidth provisioning for FAIR_GROUP_SCHED (CFS_BANDWIDTH) [N/y/?] (NEW) 
+---
+CONFIG_RT_GROUP_SCHED:
+
+This feature lets you explicitly allocate real CPU bandwidth
+to task groups. If enabled, it will also make it impossible to
+schedule realtime tasks for non-root users until you allocate
+realtime bandwidth for them.
+See Documentation/scheduler/sched-rt-group.rst for more information.
+
+Symbol: RT_GROUP_SCHED [=n]
+Type  : bool
+Defined at init/Kconfig:1031
+  Prompt: Group scheduling for SCHED_RR/FIFO
+  Depends on: CGROUPS [=y] && CGROUP_SCHED [=y]
+  Location:
+    Main menu
+      -> General setup
+        -> Control Group support (CGROUPS [=y])
+          -> CPU controller (CGROUP_SCHED [=y])
+
+
+
+  Group scheduling for SCHED_RR/FIFO (RT_GROUP_SCHED) [N/y/?] (NEW) 
+keeping N
+---
+Automatic process group scheduling (SCHED_AUTOGROUP) [N/y/?] (NEW) ?
+
+CONFIG_SCHED_AUTOGROUP:
+
+This option optimizes the scheduler for common desktop workloads by
+automatically creating and populating task groups.  This separation
+of workloads isolates aggressive CPU burners (like build jobs) from
+desktop applications.  Task group autogeneration is currently based
+upon task session.
+
+Symbol: SCHED_AUTOGROUP [=n]
+Type  : bool
+Defined at init/Kconfig:1283
+  Prompt: Automatic process group scheduling
+  Location:
+    Main menu
+      -> General setup
+Selects: CGROUPS [=y] && CGROUP_SCHED [=y] && FAIR_GROUP_SCHED [=y]
+
+
+
+Automatic process group scheduling (SCHED_AUTOGROUP) [N/y/?] (NEW) 
+keeping N
+---
+kernel 6.0.6 new(s) things from upgrading from 5.18.19:
+
+  CONFIG_CGROUP_FAVOR_DYNMODS:
+
+This option enables the "favordynmods" mount option by default
+which reduces the latencies of dynamic cgroup modifications such
+as task migrations and controller on/offs at the cost of making
+hot path operations such as forks and exits more expensive.
+
+Say N if unsure.
+
+Symbol: CGROUP_FAVOR_DYNMODS [=n]
+Type  : bool
+Defined at init/Kconfig:944
+  Prompt: Favor dynamic modification latency reduction by default
+  Depends on: CGROUPS [=y]
+  Location:
+    Main menu
+      -> General setup
+        -> Control Group support (CGROUPS [=y])
+
+
+
+  Favor dynamic modification latency reduction by default (CGROUP_FAVOR_DYNMODS) [N/y/?] (NEW)
+choosing N for now.
+
+CONFIG_PERF_EVENTS_AMD_BRS:
+
+Enable AMD Zen3 branch sampling support (BRS) which samples up to
+16 consecutive taken branches in registers.
+
+Symbol: PERF_EVENTS_AMD_BRS [=n]
+Type  : bool
+Defined at arch/x86/events/Kconfig:48
+  Prompt: AMD Zen3 Branch Sampling support
+  Depends on: PERF_EVENTS [=y] && CPU_SUP_AMD [=y]
+  Location:
+    Main menu
+      -> Processor type and features
+        -> Performance monitoring
+
+
+
+AMD Zen3 Branch Sampling support (PERF_EVENTS_AMD_BRS) [N/y/?] (NEW)
+N it is
+
+CONFIG_MICROCODE_LATE_LOADING:
+
+Loading microcode late, when the system is up and executing instructions
+is a tricky business and should be avoided if possible. Just the sequence
+of synchronizing all cores and SMT threads is one fragile dance which does
+not guarantee that cores might not softlock after the loading. Therefore,
+use this at your own risk. Late loading taints the kernel too.
+
+Symbol: MICROCODE_LATE_LOADING [=n]
+Type  : bool
+Defined at arch/x86/Kconfig:1343
+  Prompt: Late microcode loading (DANGEROUS)
+  Depends on: MICROCODE [=y]
+  Location:
+    Main menu
+      -> Processor type and features
+        -> CPU microcode loading support (MICROCODE [=y])
+
+
+
+  Late microcode loading (DANGEROUS) (MICROCODE_LATE_LOADING) [N/y/?] (NEW)
+ok don't do this! N then!
+
+  CONFIG_MODULE_UNLOAD_TAINT_TRACKING:
+
+This option allows you to maintain a record of each unloaded
+module that tainted the kernel. In addition to displaying a
+list of linked (or loaded) modules e.g. on detection of a bad
+page (see bad_page()), the aforementioned details are also
+shown. If unsure, say N.
+
+Symbol: MODULE_UNLOAD_TAINT_TRACKING [=n]
+Type  : bool
+Defined at kernel/module/Kconfig:51
+  Prompt: Tainted module unload tracking
+  Depends on: MODULES [=y] && MODULE_UNLOAD [=y]
+  Location:
+    Main menu
+      -> Enable loadable module support (MODULES [=y])
+        -> Module unloading (MODULE_UNLOAD [=y])
+
+
+
+    Tainted module unload tracking (MODULE_UNLOAD_TAINT_TRACKING) [N/y/?] (NEW) y
+
+CONFIG_FW_LOADER_COMPRESS_XZ:
+
+This option adds the support for XZ-compressed files.
+The files have to be compressed with either none or crc32
+integrity check type (pass "-C crc32" option to xz command).
+
+Symbol: FW_LOADER_COMPRESS_XZ [=y]
+Type  : bool
+Defined at drivers/base/firmware_loader/Kconfig:176
+  Prompt: Enable XZ-compressed firmware support
+  Depends on: FW_LOADER [=y] && FW_LOADER_COMPRESS [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Generic Driver Options
+          -> Firmware loader
+            -> Firmware loading facility (FW_LOADER [=y])
+              -> Enable compressed firmware support (FW_LOADER_COMPRESS [=y])
+Selects: FW_LOADER_PAGED_BUF [=y] && XZ_DEC [=y]
+
+
+
+    Enable XZ-compressed firmware support (FW_LOADER_COMPRESS_XZ) [Y/n/?] (NEW) y
+
+CONFIG_FW_LOADER_COMPRESS_ZSTD:
+
+This option adds the support for ZSTD-compressed files.
+
+Symbol: FW_LOADER_COMPRESS_ZSTD [=n]
+Type  : bool
+Defined at drivers/base/firmware_loader/Kconfig:186
+  Prompt: Enable ZSTD-compressed firmware support
+  Depends on: FW_LOADER [=y] && FW_LOADER_COMPRESS [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Generic Driver Options
+          -> Firmware loader
+            -> Firmware loading facility (FW_LOADER [=y])
+              -> Enable compressed firmware support (FW_LOADER_COMPRESS [=y])
+Selects: ZSTD_DECOMPRESS [=y]
+
+
+
+    Enable ZSTD-compressed firmware support (FW_LOADER_COMPRESS_ZSTD) [N/y/?] (NEW) y
+
+CONFIG_FW_UPLOAD:
+
+Enabling this option will allow device drivers to expose a persistent
+sysfs interface that allows firmware updates to be initiated from
+userspace. For example, FPGA based PCIe cards load firmware and FPGA
+images from local FLASH when the card boots. The images in FLASH may
+be updated with new images provided by the user. Enable this device
+to support cards that rely on user-initiated updates for firmware files.
+
+If unsure, say N.
+
+Symbol: FW_UPLOAD [=n]
+Type  : bool
+Defined at drivers/base/firmware_loader/Kconfig:206
+  Prompt: Enable users to initiate firmware updates using sysfs
+  Depends on: FW_LOADER [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Generic Driver Options
+          -> Firmware loader
+            -> Firmware loading facility (FW_LOADER [=y])
+Selects: FW_LOADER_SYSFS [=n] && FW_LOADER_PAGED_BUF [=y]
+
+
+
+  Enable users to initiate firmware updates using sysfs (FW_UPLOAD) [N/y/?] (NEW) n
+
+CONFIG_MHI_BUS_EP:
+
+Bus driver for MHI protocol. Modem Host Interface (MHI) is a
+communication protocol used by a host processor to control
+and communicate a modem device over a high speed peripheral
+bus or shared memory.
+
+MHI_BUS_EP implements the MHI protocol for the endpoint devices,
+such as SDX55 modem connected to the host machine over PCIe.
+
+Symbol: MHI_BUS_EP [=n]
+Type  : tristate
+Defined at drivers/bus/mhi/ep/Kconfig:1
+  Prompt: Modem Host Interface (MHI) bus Endpoint implementation
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Bus devices
+
+
+
+Modem Host Interface (MHI) bus Endpoint implementation (MHI_BUS_EP) [N/m/y/?] (NEW) n
+
+CONFIG_BLK_DEV_UBLK:
+
+io_uring based userspace block driver. Together with ublk server, ublk
+has been working well, but interface with userspace or command data
+definition isn't finalized yet, and might change according to future
+requirement, so mark is as experimental now.
+
+Symbol: BLK_DEV_UBLK [=n]
+Type  : tristate
+Defined at drivers/block/Kconfig:402
+  Prompt: Userspace block driver (Experimental)
+  Depends on: BLK_DEV [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Block devices (BLK_DEV [=y])
+Selects: IO_URING [=y]
+
+
+
+  Userspace block driver (Experimental) (BLK_DEV_UBLK) [N/m/y/?] (NEW)
+N for now, I dno.
+
+CONFIG_NVME_AUTH:
+
+This provides support for NVMe over Fabrics In-Band Authentication.
+
+If unsure, say N.
+
+Symbol: NVME_AUTH [=n]
+Type  : bool
+Defined at drivers/nvme/host/Kconfig:95
+  Prompt: NVM Express over Fabrics In-Band Authentication
+  Depends on: NVME_CORE [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> NVME Support
+Selects: NVME_COMMON [=n] && CRYPTO [=y] && CRYPTO_HMAC [=y] && CRYPTO_SHA256 [=y] && CRYPTO_SHA512 [=y] && CRYPTO_DH [=y] && CRYPTO_DH_RFC7919_GROUPS [=n]
+
+
+
+NVM Express over Fabrics In-Band Authentication (NVME_AUTH) [N/y/?] (NEW)
+
+CONFIG_TCG_TIS_I2C:
+
+If you have a TPM security chip, compliant with the TCG TPM PTP
+(I2C interface) specification and connected to an I2C bus master,
+say Yes and it will be accessible from within Linux.
+To compile this driver as a module, choose M here;
+the module will be called tpm_tis_i2c.
+
+Symbol: TCG_TIS_I2C [=n]
+Type  : tristate
+Defined at drivers/char/tpm/Kconfig:77
+  Prompt: TPM Interface Specification 1.3 Interface / TPM 2.0 FIFO Interface - (I2C - generic)
+  Depends on: TCG_TPM [=y] && I2C [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Character devices
+          -> TPM Hardware Support (TCG_TPM [=y])
+Selects: CRC_CCITT [=y] && TCG_TIS_CORE [=y]
+
+
+
+  TPM Interface Specification 1.3 Interface / TPM 2.0 FIFO Interface - (I2C - generic) (TCG_TIS_I2C) [N/m/y/?] (NEW) n
+I don't think I've anything over 1.2, it's the inner intel cpu one.
+
+  CONFIG_SENSORS_NCT6775_I2C:
+
+If you say yes here you get support for the hardware monitoring
+functionality of the Nuvoton NCT6106D, NCT6775F, NCT6776F, NCT6779D,
+NCT6791D, NCT6792D, NCT6793D, NCT6795D, NCT6796D, and compatible
+Super-I/O chips via their I2C interface.
+
+If you're not building a kernel for a BMC, this is probably
+not the driver you want (see CONFIG_SENSORS_NCT6775).
+
+This driver can also be built as a module. If so, the module
+will be called nct6775-i2c.
+
+Symbol: SENSORS_NCT6775_I2C [=n]
+Type  : tristate
+Defined at drivers/hwmon/Kconfig:1510
+  Prompt: I2C driver for Nuvoton NCT6775F and compatibles
+  Depends on: HWMON [=y] && I2C [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Hardware Monitoring support (HWMON [=y])
+Selects: REGMAP_I2C [=y] && SENSORS_NCT6775_CORE [=y]
+
+
+
+  I2C driver for Nuvoton NCT6775F and compatibles (SENSORS_NCT6775_I2C) [N/m/y/?] (NEW) y
+YES here because I've said yes to what I've which is: "Platform driver for Nuvoton NCT6775F and compatibles (SENSORS_NCT6775) [Y/n/m/?] y" (search earlier in this file)
+
+CONFIG_DRM_KUNIT_TEST:
+
+This builds unit tests for DRM. This option is not useful for
+distributions or general kernels, but only for kernel
+developers working on DRM and associated drivers.
+
+For more information on KUnit and unit tests in general,
+please refer to the KUnit documentation in
+Documentation/dev-tools/kunit/.
+
+If in doubt, say "N".
+
+Symbol: DRM_KUNIT_TEST [=n]
+Type  : tristate
+Defined at drivers/gpu/drm/Kconfig:74
+  Prompt: KUnit tests for DRM
+  Depends on: HAS_IOMEM [=y] && DRM [=y] && KUNIT [=y]=y
+  Visible if: HAS_IOMEM [=y] && DRM [=y] && KUNIT [=y]=y && !KUNIT_ALL_TESTS [=n]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Graphics support
+          -> Direct Rendering Manager (XFree86 4.1.0 and higher DRI support) (DRM [=y])
+Selects: DRM_KMS_HELPER [=y]
+
+
+
+  KUnit tests for DRM (DRM_KUNIT_TEST) [N/m/y/?] (NEW) n
+
+
+CONFIG_SND_CTL_FAST_LOOKUP:
+
+This option enables the faster lookup of control elements.
+It will consume more memory because of the additional Xarray.
+If you want to choose the memory footprint over the performance
+inevitably, turn this off.
+
+Symbol: SND_CTL_FAST_LOOKUP [=y]
+Type  : bool
+Defined at sound/core/Kconfig:157
+  Prompt: Fast lookup of control elements
+  Depends on: SOUND [=y] && !UML && SND [=y]
+  Visible if: SOUND [=y] && !UML && SND [=y] && EXPERT [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Sound card support (SOUND [=y])
+          -> Advanced Linux Sound Architecture (SND [=y])
+Selects: XARRAY_MULTI [=y]
+
+
+
+  Fast lookup of control elements (SND_CTL_FAST_LOOKUP) [Y/n/?] (NEW) y
+
+  Validate input data to control API (SND_CTL_INPUT_VALIDATION) [N/y/?] (NEW) ?
+
+CONFIG_SND_CTL_INPUT_VALIDATION:
+
+Say Y to enable the additional validation for the input data to
+each control element, including the value range checks.
+An error is returned from ALSA core for invalid inputs without
+passing to the driver.  This is a kind of hardening for drivers
+that have no proper error checks, at the cost of a slight
+performance overhead.
+
+Symbol: SND_CTL_INPUT_VALIDATION [=n]
+Type  : bool
+Defined at sound/core/Kconfig:191
+  Prompt: Validate input data to control API
+  Depends on: SOUND [=y] && !UML && SND [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Sound card support (SOUND [=y])
+          -> Advanced Linux Sound Architecture (SND [=y])
+
+
+
+  Validate input data to control API (SND_CTL_INPUT_VALIDATION) [N/y/?] (NEW) y
+for performance say N here,  so far Y for security!
+
+*
+* Universal Flash Storage Controller
+*
+Universal Flash Storage Controller (SCSI_UFSHCD) [N/m/y/?] (NEW) ?
+
+CONFIG_SCSI_UFSHCD:
+
+Enables support for UFS (Universal Flash Storage) host controllers.
+A UFS host controller is an electronic component that is able to
+communicate with a UFS card. UFS host controllers occur in
+smartphones, laptops, digital cameras and also in cars.
+The kernel module will be called ufshcd.
+
+To compile this driver as a module, choose M here and read
+<file:Documentation/scsi/ufs.rst>.
+However, do not compile this as a module if your root file system
+(the one containing the directory /) is located on a UFS device.
+
+Symbol: SCSI_UFSHCD [=n]
+Type  : tristate
+Defined at drivers/ufs/Kconfig:6
+  Prompt: Universal Flash Storage Controller
+  Depends on: SCSI [=y] && SCSI_DMA [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+Selects: PM_DEVFREQ [=y] && DEVFREQ_GOV_SIMPLE_ONDEMAND [=y] && NLS [=y]
+
+
+
+Universal Flash Storage Controller (SCSI_UFSHCD) [N/m/y/?] (NEW) m
+this might be useless TODO: remove ? maybe useful for when phone is connected? no idea.
+
+  Universal Flash Storage BSG device node (SCSI_UFS_BSG) [N/y/?] (NEW) ?
+
+CONFIG_SCSI_UFS_BSG:
+
+Universal Flash Storage (UFS) is SCSI transport specification for
+accessing flash storage on digital cameras, mobile phones and
+consumer electronic devices.
+A UFS controller communicates with a UFS device by exchanging
+UFS Protocol Information Units (UPIUs).
+UPIUs can not only be used as a transport layer for the SCSI protocol
+but are also used by the UFS native command set.
+This transport driver supports exchanging UFS protocol information units
+with a UFS device. See also the ufshcd driver, which is a SCSI driver
+that supports UFS devices.
+
+Select this if you need a bsg device node for your UFS controller.
+If unsure, say N.
+
+Symbol: SCSI_UFS_BSG [=n]
+Type  : bool
+Defined at drivers/ufs/core/Kconfig:11
+  Prompt: Universal Flash Storage BSG device node
+  Depends on: SCSI_UFSHCD [=m]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Universal Flash Storage Controller (SCSI_UFSHCD [=m])
+Selects: BLK_DEV_BSGLIB [=y]
+
+
+
+  Universal Flash Storage BSG device node (SCSI_UFS_BSG) [N/y/?] (NEW) y
+TODO: I probably don't need this either, set to N ?!
+
+CONFIG_SCSI_UFS_HPB:
+
+The UFS HPB feature improves random read performance. It caches
+L2P (logical to physical) map of UFS to host DRAM. The driver uses HPB
+read command by piggybacking physical page number for bypassing FTL (flash
+translation layer)'s L2P address translation.
+
+Symbol: SCSI_UFS_HPB [=n]
+Type  : bool
+Defined at drivers/ufs/core/Kconfig:38
+  Prompt: Support UFS Host Performance Booster
+  Depends on: SCSI_UFSHCD [=m]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Universal Flash Storage Controller (SCSI_UFSHCD [=m])
+
+
+
+  Support UFS Host Performance Booster (SCSI_UFS_HPB) [N/y/?] (NEW) y
+TODO: probably don't need, like the above.
+
+CONFIG_SCSI_UFS_HWMON:
+
+This provides support for UFS hardware monitoring. If enabled,
+a hardware monitoring device will be created for the UFS device.
+
+If unsure, say N.
+
+Symbol: SCSI_UFS_HWMON [=n]
+Type  : bool
+Defined at drivers/ufs/core/Kconfig:53
+  Prompt: UFS Temperature Notification
+  Depends on: SCSI_UFSHCD [=m] && (SCSI_UFSHCD [=m]=HWMON [=y] || HWMON [=y]=y)
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Universal Flash Storage Controller (SCSI_UFSHCD [=m])
+
+
+
+  UFS Temperature Notification (SCSI_UFS_HWMON) [N/y/?] (NEW) y
+
+CONFIG_SCSI_UFSHCD_PCI:
+
+This selects the PCI UFS Host Controller Interface. Select this if
+you have UFS Host Controller with PCI Interface.
+
+If you have a controller with this interface, say Y or M here.
+
+If unsure, say N.
+
+Symbol: SCSI_UFSHCD_PCI [=n]
+Type  : tristate
+Defined at drivers/ufs/host/Kconfig:11
+  Prompt: PCI bus based UFS Controller support
+  Depends on: SCSI_UFSHCD [=m] && PCI [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Universal Flash Storage Controller (SCSI_UFSHCD [=m])
+
+
+
+  PCI bus based UFS Controller support (SCSI_UFSHCD_PCI) [N/m/?] (NEW) n
+this I don't have for sure.
+
+CONFIG_SCSI_UFSHCD_PLATFORM:
+
+This selects the UFS host controller support. Select this if
+you have an UFS controller on Platform bus.
+
+If you have a controller with this interface, say Y or M here.
+
+If unsure, say N.
+
+Symbol: SCSI_UFSHCD_PLATFORM [=n]
+Type  : tristate
+Defined at drivers/ufs/host/Kconfig:30
+  Prompt: Platform bus based UFS Controller support
+  Depends on: SCSI_UFSHCD [=m] && HAS_IOMEM [=y]
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Universal Flash Storage Controller (SCSI_UFSHCD [=m])
+
+
+
+  Platform bus based UFS Controller support (SCSI_UFSHCD_PLATFORM) [N/m/?] (NEW)
+likely I don't have.
+
+Pulse-Width Modulation (PWM) Support (PWM) [Y/n/?] y
+  PWM lowlevel drivers additional checks and debug messages (PWM_DEBUG) [N/y/?] n
+  Clock based PWM support (PWM_CLK) [N/m/y/?] (NEW) ?
+
+CONFIG_PWM_CLK:
+
+Generic PWM framework driver for outputs that can be
+muxed to clocks.
+
+To compile this driver as a module, choose M here: the module
+will be called pwm-clk.
+
+Symbol: PWM_CLK [=n]
+Type  : tristate
+Defined at drivers/pwm/Kconfig:143
+  Prompt: Clock based PWM support
+  Depends on: PWM [=y] && (HAVE_CLK [=y] || COMPILE_TEST [=n])
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Pulse-Width Modulation (PWM) Support (PWM [=y])
+
+
+
+  Clock based PWM support (PWM_CLK) [N/m/y/?] (NEW) n
+N for now, I don't know what this is?!
+
+  Reset Controller Support (RESET_CONTROLLER) [Y/n/?] y
+  Simple Reset Controller Driver (RESET_SIMPLE) [N/y/?] (NEW) ?
+
+CONFIG_RESET_SIMPLE:
+
+This enables a simple reset controller driver for reset lines that
+that can be asserted and deasserted by toggling bits in a contiguous,
+exclusive register space.
+
+Currently this driver supports:
+ - Altera SoCFPGAs
+ - ASPEED BMC SoCs
+ - Bitmain BM1880 SoC
+ - Realtek SoCs
+ - RCC reset controller in STM32 MCUs
+ - Allwinner SoCs
+ - SiFive FU740 SoCs
+
+Symbol: RESET_SIMPLE [=n]
+Type  : bool
+Defined at drivers/reset/Kconfig:202
+  Prompt: Simple Reset Controller Driver
+  Depends on: RESET_CONTROLLER [=y] && HAS_IOMEM [=y]
+  Visible if: RESET_CONTROLLER [=y] && HAS_IOMEM [=y] && (COMPILE_TEST [=n] || EXPERT [=y])
+  Location:
+    Main menu
+      -> Device Drivers
+        -> Reset Controller Support (RESET_CONTROLLER [=y])
+Selected by [n]:
+  - CLK_BCM2711_DVP [=n] && (ARCH_BCM2835 || COMPILE_TEST [=n]) && COMMON_CLK [=y]
+  - CLK_SIFIVE_PRCI [=n] && COMMON_CLK [=y] && CLK_SIFIVE [=n]
+  - RESET_SOCFPGA [=n] && RESET_CONTROLLER [=y]
+  - RESET_SUNXI [=n] && RESET_CONTROLLER [=y]
+  - RESET_UNIPHIER_GLUE [=n] && RESET_CONTROLLER [=y] && (ARCH_UNIPHIER || COMPILE_TEST [=n]) && OF [=n]
+
+
+
+  Simple Reset Controller Driver (RESET_SIMPLE) [N/y/?] (NEW) n
+I don't seem to need this for anything! SoCs I don't have.
+
+*
+* Hardware Timestamping Engine (HTE) Support
+*
+Hardware Timestamping Engine (HTE) Support (HTE) [N/y/?] (NEW) ?
+
+CONFIG_HTE:
+
+Hardware Timestamping Engine (HTE) Support.
+
+Some devices provide a hardware timestamping engine which can
+timestamp certain device lines/signals in realtime. It comes with a
+benefit for the applications needing accurate timestamping event with
+less jitter. This framework provides a generic interface to such HTE
+providers and consumer devices.
+
+If unsure, say no.
+
+Symbol: HTE [=n]
+Type  : bool
+Defined at drivers/hte/Kconfig:2
+  Prompt: Hardware Timestamping Engine (HTE) Support
+  Location:
+    Main menu
+      -> Device Drivers
+
+
+
+Hardware Timestamping Engine (HTE) Support (HTE) [N/y/?] (NEW) n
+
+HugeTLB Vmemmap Optimization (HVO) defaults to on (HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON) [N/y/?] (NEW) ?
+
+CONFIG_HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON:
+
+The HugeTLB VmemmapvOptimization (HVO) defaults to off. Say Y here to
+enable HVO by default. It can be disabled via hugetlb_free_vmemmap=off
+(boot command line) or hugetlb_optimize_vmemmap (sysctl).
+
+Symbol: HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON [=n]
+Type  : bool
+Defined at fs/Kconfig:260
+  Prompt: HugeTLB Vmemmap Optimization (HVO) defaults to on
+  Depends on: HUGETLB_PAGE_OPTIMIZE_VMEMMAP [=y]
+  Location:
+    Main menu
+      -> File systems
+        -> Pseudo filesystems
+
+
+
+HugeTLB Vmemmap Optimization (HVO) defaults to on (HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON) [N/y/?] (NEW) n
+
+
+*
+* Kernel hardening options
+*
+Randomize layout of sensitive kernel structures
+> 1. Disable structure layout randomization (RANDSTRUCT_NONE) (NEW)
+  2. Fully randomize structure layout (RANDSTRUCT_FULL) (NEW)
+  3. Limit randomization of structure layout to cache-lines (RANDSTRUCT_PERFORMANCE) (NEW)
+choice[1-3?]: 3
+This is security or performance here. Choosing 3
+
+CONFIG_CRYPTO_HCTR2:
+
+HCTR2 is a length-preserving encryption mode for storage encryption that
+is efficient on processors with instructions to accelerate AES and
+carryless multiplication, e.g. x86 processors with AES-NI and CLMUL, and
+ARM processors with the ARMv8 crypto extensions.
+
+Symbol: CRYPTO_HCTR2 [=n]
+Type  : tristate
+Defined at crypto/Kconfig:557
+  Prompt: HCTR2 support
+  Depends on: CRYPTO [=y]
+  Location:
+    Main menu
+      -> Cryptographic API (CRYPTO [=y])
+Selects: CRYPTO_XCTR [=n] && CRYPTO_POLYVAL [=n] && CRYPTO_MANAGER [=y]
+
+
+
+  HCTR2 support (CRYPTO_HCTR2) [N/m/y/?] (NEW) n
+
+and others that I didn't paste here, N.
+
+ONFIG_FIPS_SIGNATURE_SELFTEST:
+
+This option causes some selftests to be run on the signature
+verification code, using some built in data.  This is required
+for FIPS.
+
+Symbol: FIPS_SIGNATURE_SELFTEST [=n]
+Type  : bool
+Defined at crypto/asymmetric_keys/Kconfig:78
+  Prompt: Run FIPS selftests on the X.509+PKCS7 signature verification
+  Depends on: CRYPTO [=y] && KEYS [=y] && ASYMMETRIC_KEY_TYPE [=y] && PKCS7_MESSAGE_PARSER [=y]
+  Location:
+    Main menu
+      -> Cryptographic API (CRYPTO [=y])
+        -> Asymmetric (public-key cryptographic) key type (ASYMMETRIC_KEY_TYPE [=y])
+
+
+
+    Run FIPS selftests on the X.509+PKCS7 signature verification (FIPS_SIGNATURE_SELFTEST) [N/y/?] (NEW) y
+
+Add generic networking debug (DEBUG_NET) [N/y/?] (NEW) ?
+
+CONFIG_DEBUG_NET:
+
+Enable extra sanity checks in networking.
+This is mostly used by fuzzers, but is safe to select.
+
+Symbol: DEBUG_NET [=n]
+Type  : bool
+Defined at net/Kconfig.debug:21
+  Prompt: Add generic networking debug
+  Depends on: DEBUG_KERNEL [=y] && NET [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Networking Debugging
+
+
+
+Add generic networking debug (DEBUG_NET) [N/y/?] (NEW) n
+
+Enable shrinker debugging support (SHRINKER_DEBUG) [N/y/?] (NEW) ?
+
+CONFIG_SHRINKER_DEBUG:
+
+Say Y to enable the shrinker debugfs interface which provides
+visibility into the kernel memory shrinkers subsystem.
+Disable it to avoid an extra memory footprint.
+
+Symbol: SHRINKER_DEBUG [=n]
+Type  : bool
+Defined at lib/Kconfig.debug:710
+  Prompt: Enable shrinker debugging support
+  Depends on: DEBUG_FS [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Memory Debugging
+
+
+
+Enable shrinker debugging support (SHRINKER_DEBUG) [N/y/?] (NEW) y
+TODO: disable for less mem usage. Enabled for now, because I might want to look.
+
+
+Expedited RCU CPU stall timeout in milliseconds (RCU_EXP_CPU_STALL_TIMEOUT) [0] (NEW) ?
+
+CONFIG_RCU_EXP_CPU_STALL_TIMEOUT:
+
+If a given expedited RCU grace period extends more than the
+specified number of milliseconds, a CPU stall warning is printed.
+If the RCU grace period persists, additional CPU stall warnings
+are printed at more widely spaced intervals.  A value of zero
+says to use the RCU_CPU_STALL_TIMEOUT value converted from
+seconds to milliseconds.
+
+Symbol: RCU_EXP_CPU_STALL_TIMEOUT [=0]
+Type  : integer
+Range : [0 21000]
+Defined at kernel/rcu/Kconfig.debug:85
+  Prompt: Expedited RCU CPU stall timeout in milliseconds
+  Depends on: RCU_STALL_COMMON [=y]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> RCU Debugging
+
+
+
+Expedited RCU CPU stall timeout in milliseconds (RCU_EXP_CPU_STALL_TIMEOUT) [0] (NEW)
+0 it is then.
+
+  KUnit test for cpumask (CPUMASK_KUNIT_TEST) [N/m/y/?] (NEW) ?
+
+CONFIG_CPUMASK_KUNIT_TEST:
+
+Enable to turn on cpumask tests, running at boot or module load time.
+
+For more information on KUnit and unit tests in general, please refer
+to the KUnit documentation in Documentation/dev-tools/kunit/.
+
+If unsure, say N.
+
+Symbol: CPUMASK_KUNIT_TEST [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2040
+  Prompt: KUnit test for cpumask
+  Depends on: RUNTIME_TESTING_MENU [=y] && KUNIT [=y]
+  Visible if: RUNTIME_TESTING_MENU [=y] && KUNIT [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    Main menu
+      -> Kernel hacking
+        -> Kernel Testing and Coverage
+          -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+
+
+
+  KUnit test for cpumask (CPUMASK_KUNIT_TEST) [N/m/y/?] (NEW) y
+because it's a test at boot time , we love those :))
+
+all done, so this is what changed: old is 5.18.19 and new is 6.0.6
+$ diffkconfigs .config.old  .config
+Comparing:
+--- '.config.old'
++++ '.config'
+grep: warning: stray \ before @
+grep: warning: stray \ before @
+grep: warning: stray \ before +
++CONFIG_ADIN1100_PHY is not set
++CONFIG_ANDROID_BINDER_IPC is not set
+-CONFIG_ANDROID is not set
++CONFIG_APERTURE_HELPERS=y
+-CONFIG_ARCH_HAS_FILTER_PGPROT=y
+-CONFIG_ARCH_RANDOM=y
++CONFIG_ARCH_WANT_HUGETLB_PAGE_OPTIMIZE_VMEMMAP=y
++CONFIG_AS_HAS_NON_CONST_LEB128=y
++CONFIG_ASM_MODVERSIONS=y
+-CONFIG_AS_VERSION=23800
++CONFIG_AS_VERSION=23900
++CONFIG_AUXILIARY_BUS=y
+-CONFIG_BLK_DEV_SX8 is not set
++CONFIG_BLK_DEV_UBLK is not set
+-CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE=0
+-CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE=0
+-CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE=0
+-CONFIG_BUILD_BIN2C=y
+-CONFIG_CC_HAS_ASM_GOTO=y
++CONFIG_CC_HAS_AUTO_VAR_INIT_ZERO_BARE=y
+-CONFIG_CC_VERSION_TEXT="gcc (Gentoo 12.2.0 p1) 12.2.0"
++CONFIG_CC_VERSION_TEXT="gcc (Gentoo 12.2.1_p20221008 p1) 12.2.1 20221008"
++CONFIG_CGROUP_FAVOR_DYNMODS is not set
++CONFIG_CONTEXT_TRACKING_IDLE=y
++CONFIG_CONTEXT_TRACKING=y
++CONFIG_CPUMASK_KUNIT_TEST=y
++CONFIG_CRYPTO_ARIA is not set
++CONFIG_CRYPTO_HCTR2 is not set
++CONFIG_CRYPTO_LIB_SHA1=y
++CONFIG_CRYPTO_POLYVAL_CLMUL_NI is not set
++CONFIG_CRYPTO_SM3_GENERIC is not set
+-CONFIG_CRYPTO_SM3 is not set
++CONFIG_CRYPTO_SM4_GENERIC is not set
+-CONFIG_CRYPTO_SM4 is not set
+-CONFIG_DEBUG_INFO_BTF is not set
++CONFIG_DEBUG_NET is not set
++CONFIG_DP83TD510_PHY is not set
++CONFIG_DRM_DISPLAY_DP_HELPER=y
++CONFIG_DRM_DISPLAY_HDCP_HELPER=y
++CONFIG_DRM_DISPLAY_HDMI_HELPER=y
++CONFIG_DRM_DISPLAY_HELPER=y
+-CONFIG_DRM_DP_HELPER=y
++CONFIG_DRM_KUNIT_TEST is not set
+-CONFIG_EFI_DISABLE_RUNTIME=y
++CONFIG_FIPS_SIGNATURE_SELFTEST=y
++CONFIG_FW_LOADER_COMPRESS_XZ=y
++CONFIG_FW_LOADER_COMPRESS_ZSTD=y
++CONFIG_FW_UPLOAD is not set
+-CONFIG_GCC_PLUGIN_RANDSTRUCT is not set
++CONFIG_GCC_PLUGIN_RANDSTRUCT=y
+-CONFIG_GCC_VERSION=120200
++CONFIG_GCC_VERSION=120201
+-CONFIG_HAVE_CONTEXT_TRACKING_OFFSTACK=y
++CONFIG_HAVE_CONTEXT_TRACKING_USER_OFFSTACK=y
++CONFIG_HAVE_CONTEXT_TRACKING_USER=y
+-CONFIG_HAVE_CONTEXT_TRACKING=y
++CONFIG_HAVE_JUMP_LABEL_HACK=y
++CONFIG_HAVE_NOINSTR_HACK=y
++CONFIG_HAVE_NOINSTR_VALIDATION=y
++CONFIG_HAVE_OBJTOOL=y
++CONFIG_HAVE_UACCESS_VALIDATION=y
++CONFIG_HID_MEGAWORLD_FF is not set
++CONFIG_HID_TOPRE is not set
++CONFIG_HTE is not set
+-CONFIG_HUGETLB_PAGE_FREE_VMEMMAP_DEFAULT_ON is not set
+-CONFIG_HUGETLB_PAGE_FREE_VMEMMAP=y
++CONFIG_HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON is not set
++CONFIG_HUGETLB_PAGE_OPTIMIZE_VMEMMAP=y
++CONFIG_INITRAMFS_PRESERVE_MTIME=y
++CONFIG_INPUT_IQS7222 is not set
+-CONFIG_LD_VERSION=23800
++CONFIG_LD_VERSION=23900
+-CONFIG_LEDS_CLEVO_MAIL is not set
++CONFIG_LEDS_IS31FL319X is not set
+-CONFIG_LEGACY_VSYSCALL_EMULATE is not set
++CONFIG_MHI_BUS_EP is not set
++CONFIG_MICROCODE_LATE_LOADING is not set
+-CONFIG_MICROCODE_OLD_INTERFACE is not set
++CONFIG_MMU_GATHER_MERGE_VMAS=y
++CONFIG_MODULE_UNLOAD_TAINT_TRACKING=y
+-CONFIG_MODVERSIONS is not set
++CONFIG_MODVERSIONS=y
++CONFIG_NET_VENDOR_WANGXUN is not set
++CONFIG_NVME_AUTH is not set
++CONFIG_OBJTOOL=y
++CONFIG_P2SB=y
+-CONFIG_PCS_XPCS is not set
++CONFIG_PERF_EVENTS_AMD_BRS is not set
++CONFIG_PINCTRL_METEORLAKE is not set
+-CONFIG_PMC_ATOM=y
++CONFIG_PWM_CLK is not set
++CONFIG_RANDSTRUCT_FULL is not set
++CONFIG_RANDSTRUCT_NONE is not set
++CONFIG_RANDSTRUCT_PERFORMANCE=y
++CONFIG_RANDSTRUCT=y
++CONFIG_RCU_EXP_CPU_STALL_TIMEOUT=0
++CONFIG_REGULATOR_RT5759 is not set
++CONFIG_RESET_SIMPLE is not set
++CONFIG_RESET_TI_TPS380X is not set
++CONFIG_SCSI_UFS_BSG=y
++CONFIG_SCSI_UFSHCD=m
++CONFIG_SCSI_UFSHCD_PCI is not set
++CONFIG_SCSI_UFSHCD_PLATFORM is not set
++CONFIG_SCSI_UFS_HPB=y
++CONFIG_SCSI_UFS_HWMON=y
++CONFIG_SENSORS_NCT6775_CORE=y
++CONFIG_SENSORS_NCT6775_I2C=y
++CONFIG_SHRINKER_DEBUG=y
++CONFIG_SND_CTL_FAST_LOOKUP=y
++CONFIG_SND_CTL_INPUT_VALIDATION=y
++CONFIG_SOFTIRQ_ON_OWN_STACK=y
++CONFIG_SPI_MICROCHIP_CORE is not set
+-CONFIG_STACK_HASH_ORDER=20
+-CONFIG_STACK_VALIDATION=y
+-CONFIG_SYSFB=y
++CONFIG_SYSTEM_BLACKLIST_AUTH_UPDATE is not set
++CONFIG_TCG_TIS_I2C is not set
+-CONFIG_UNISYS_VISORBUS is not set
+-CONFIG_USB_STKWEBCAM is not set
++CONFIG_VIDEO_AR0521 is not set
+-CONFIG_VIDEO_V4L2_SUBDEV_API=y
++CONFIG_VIRTIO_ANCHOR=y
+-CONFIG_VIRT_TO_BUS=y
+-CONFIG_VME_BUS is not set
++CONFIG_WINMATE_FM07_KEYS is not set
++CONFIG_WLAN_VENDOR_PURELIFI is not set
++CONFIG_WLAN_VENDOR_SILABS is not set
+-CONFIG_X86_SMAP is not set
++++ .config
+--- .config.old
+
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+--------------
+// KEEP THIS LAST!
+// note: this only works when non-root!
+// thanks <telemachus> on #vim freenode irc, for a filetype that's not .c or .cpp which ale would yell/error on:
+// vim: set ft=javascript:
