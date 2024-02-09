@@ -386,9 +386,78 @@ Defined at drivers/pwm/Kconfig:143
 
   Clock based PWM support (PWM_CLK) [N/m/y/?] (NEW) n
 --------
+interesting, TODO: look into this:
+CONFIG_NETKIT:
+
+The netkit device is a virtual networking device where BPF programs
+can be attached to the device(s) transmission routine in order to
+implement the driver's internal logic. The device can be configured
+to operate in L3 or L2 mode. If unsure, say N.
+
+Symbol: NETKIT [=n]
+Type  : bool
+Defined at drivers/net/Kconfig:451
+  Prompt: BPF-programmable network device
+  Depends on: NETDEVICES [=y] && NET_CORE [=y] && BPF_SYSCALL [=y]
+  Location:
+    -> Device Drivers
+      -> Network device support (NETDEVICES [=y])
+        -> Network core driver support (NET_CORE [=y])
+          -> BPF-programmable network device (NETKIT [=n])
+
+
+
+    BPF-programmable network device (NETKIT) [N/y/?] (NEW) n
 --------
+do I need this? even if for a future processor?
+CONFIG_IDPF:
+
+This driver supports Intel(R) Infrastructure Data Path Function
+devices.
+
+To compile this driver as a module, choose M here. The module
+will be called idpf.
+
+Symbol: IDPF [=n]
+Type  : tristate
+Defined at drivers/net/ethernet/intel/Kconfig:360
+  Prompt: Intel(R) Infrastructure Data Path Function Support
+  Depends on: NETDEVICES [=y] && ETHERNET [=y] && NET_VENDOR_INTEL [=y] && PCI_MSI [=y]
+  Location:
+    -> Device Drivers
+      -> Network device support (NETDEVICES [=y])
+        -> Ethernet driver support (ETHERNET [=y])
+          -> Intel devices (NET_VENDOR_INTEL [=y])
+            -> Intel(R) Infrastructure Data Path Function Support (IDPF [=n])
+Selects: DIMLIB [=n] && PAGE_POOL [=y] && PAGE_POOL_STATS [=n]
+
+
+
+      Intel(R) Infrastructure Data Path Function Support (IDPF) [N/m/y/?] (NEW) n
 --------
---------
+do I need this? what's Inspur? platform I guess
+CONFIG_INSPUR_PLATFORM_PROFILE:
+
+This will allow users to determine and control the platform modes
+between low-power, balanced and performance modes.
+
+To compile this driver as a module, choose M here: the module
+will be called inspur-platform-profile.
+
+Symbol: INSPUR_PLATFORM_PROFILE [=n]
+Type  : tristate
+Defined at drivers/platform/x86/Kconfig:991
+  Prompt: Inspur WMI platform profile driver
+  Depends on: X86_PLATFORM_DEVICES [=y] && ACPI_WMI [=y]
+  Location:
+    -> Device Drivers
+      -> X86 Platform Specific Device Drivers (X86_PLATFORM_DEVICES [=y])
+        -> Inspur WMI platform profile driver (INSPUR_PLATFORM_PROFILE [=n])
+Selects: ACPI_PLATFORM_PROFILE [=y]
+
+
+
+  Inspur WMI platform profile driver (INSPUR_PLATFORM_PROFILE) [N/m/y/?] (NEW) n
 --------
 --------
 --------

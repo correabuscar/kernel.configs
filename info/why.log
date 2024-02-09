@@ -3799,7 +3799,427 @@ grep: warning: stray \ before +
 --- .config.old
 
 --------------
+for security purposes, Y here:
+CONFIG_KVM_PROVE_MMU:
+
+Enables runtime assertions in KVM's MMU that are too costly to enable
+in anything remotely resembling a production environment, e.g. this
+gates code that verifies a to-be-freed page table doesn't have any
+present SPTEs.
+
+If in doubt, say "N".
+
+Symbol: KVM_PROVE_MMU [=n]
+Type  : bool
+Defined at arch/x86/kvm/Kconfig:141
+  Prompt: Prove KVM MMU correctness
+  Depends on: VIRTUALIZATION [=y] && DEBUG_KERNEL [=y] && KVM [=m] && EXPERT [=y]
+  Location:
+    -> Virtualization (VIRTUALIZATION [=y])
+      -> Kernel-based Virtual Machine (KVM) support (KVM [=m])
+        -> Prove KVM MMU correctness (KVM_PROVE_MMU [=n])
+
+
+
+    Prove KVM MMU correctness (KVM_PROVE_MMU) [N/y/?] (NEW)
+
 --------------
+for security purposes, Y here:
+CONFIG_RANDOM_KMALLOC_CACHES:
+
+A hardening feature that creates multiple copies of slab caches for
+normal kmalloc allocation and makes kmalloc randomly pick one based
+on code address, which makes the attackers more difficult to spray
+vulnerable memory objects on the heap for the purpose of exploiting
+memory vulnerabilities.
+
+Currently the number of copies is set to 16, a reasonably large value
+that effectively diverges the memory objects allocated for different
+subsystems or modules into different caches, at the expense of a
+limited degree of memory and CPU overhead that relates to hardware and
+system workload.
+
+Symbol: RANDOM_KMALLOC_CACHES [=n]
+Type  : bool
+Defined at mm/Kconfig:340
+  Prompt: Randomize slab caches for normal kmalloc
+  Depends on: SLUB [=y] && !SLUB_TINY [=n]
+  Location:
+    -> Memory Management options
+      -> SLAB allocator options
+        -> Randomize slab caches for normal kmalloc (RANDOM_KMALLOC_CACHES [=n])
+
+
+
+Randomize slab caches for normal kmalloc (RANDOM_KMALLOC_CACHES) [N/y/?] (NEW)
+--------------
+CONFIG_PCP_BATCH_SCALE_MAX:
+
+In page allocator, PCP (Per-CPU pageset) is refilled and drained in
+batches.  The batch number is scaled automatically to improve page
+allocation/free throughput.  But too large scale factor may hurt
+latency.  This option sets the upper limit of scale factor to limit
+the maximum latency.
+
+Symbol: PCP_BATCH_SCALE_MAX [=5]
+Type  : integer
+Range : [0 6]
+Defined at mm/Kconfig:742
+  Prompt: Maximum scale factor of PCP (Per-CPU pageset) batch allocate/free
+  Location:
+    -> Memory Management options
+      -> Maximum scale factor of PCP (Per-CPU pageset) batch allocate/free (PCP_BATCH_SCALE_MAX [=5])
+
+
+
+Maximum scale factor of PCP (Per-CPU pageset) batch allocate/free (PCP_BATCH_SCALE_MAX) [5] (NEW)
+--------------
+i disabled this test as it's for wireless:
+CONFIG_CFG80211_KUNIT_TEST:
+
+Enable this option to test cfg80211 functions with kunit.
+
+If unsure, say N.
+
+Symbol: CFG80211_KUNIT_TEST [=n]
+Type  : tristate
+Defined at net/wireless/Kconfig:204
+  Prompt: KUnit tests for cfg80211
+  Depends on: NET [=y] && WIRELESS [=y] && KUNIT [=y] && CFG80211 [=y] && !KERNEL_6_2
+  Visible if: NET [=y] && WIRELESS [=y] && KUNIT [=y] && CFG80211 [=y] && !KERNEL_6_2 && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Networking support (NET [=y])
+      -> Wireless (WIRELESS [=y])
+        -> cfg80211 - wireless configuration API (CFG80211 [=y])
+          -> KUnit tests for cfg80211 (CFG80211_KUNIT_TEST [=n])
+
+
+
+    KUnit tests for cfg80211 (CFG80211_KUNIT_TEST) [N/m/y/?] (NEW)
+--------------
+CONFIG_NET_TEST:
+
+KUnit tests covering core networking infra, such as sk_buff.
+
+If unsure, say N.
+
+Symbol: NET_TEST [=n]
+Type  : tristate
+Defined at net/Kconfig:511
+  Prompt: KUnit tests for networking
+  Depends on: NET [=y] && KUNIT [=y]
+  Visible if: NET [=y] && KUNIT [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Networking support (NET [=y])
+      -> KUnit tests for networking (NET_TEST [=n])
+
+
+
+  KUnit tests for networking (NET_TEST) [N/m/y/?] (NEW) y
+--------------
+KUnit Tests for the device model (DM_KUNIT_TEST) [N/m/y/?] (NEW) ?
+
+There is no help available for this option.
+Symbol: DM_KUNIT_TEST [=n]
+Type  : tristate
+Defined at drivers/base/test/Kconfig:12
+  Prompt: KUnit Tests for the device model
+  Depends on: KUNIT [=y]
+  Visible if: KUNIT [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Device Drivers
+      -> Generic Driver Options
+        -> KUnit Tests for the device model (DM_KUNIT_TEST [=n])
+
+
+
+KUnit Tests for the device model (DM_KUNIT_TEST) [N/m/y/?] (NEW) y
+--------------
+CONFIG_REGMAP_BUILD:
+
+This option exists purely to allow the regmap KUnit tests to
+be enabled without having to enable some driver that uses
+regmap due to unfortunate issues with how KUnit tests are
+normally enabled.
+
+Symbol: REGMAP_BUILD [=n]
+Type  : bool
+Defined at drivers/base/regmap/Kconfig:26
+  Prompt: Enable regmap build
+  Depends on: KUNIT [=y]
+  Location:
+    -> Device Drivers
+      -> Generic Driver Options
+        -> Enable regmap build (REGMAP_BUILD [=n])
+Selects: REGMAP [=y]
+
+
+
+Enable regmap build (REGMAP_BUILD) [N/y/?] (NEW) y
+--------------
+CONFIG_DRM_TTM_KUNIT_TEST:
+
+Enables unit tests for TTM, a GPU memory manager subsystem used
+to manage memory buffers. This option is mostly useful for kernel
+developers.
+
+If in doubt, say "N".
+
+Symbol: DRM_TTM_KUNIT_TEST [=n]
+Type  : tristate
+Defined at drivers/gpu/drm/Kconfig:198
+  Prompt: KUnit tests for TTM
+  Depends on: HAS_IOMEM [=y] && DRM [=y] && KUNIT [=y] && MMU [=y]
+  Visible if: HAS_IOMEM [=y] && DRM [=y] && KUNIT [=y] && MMU [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Device Drivers
+      -> Graphics support
+        -> KUnit tests for TTM (DRM_TTM_KUNIT_TEST [=n])
+Selects: DRM_TTM [=y] && DRM_EXPORT_FOR_TESTS [=n] && DRM_KUNIT_TEST_HELPERS [=n]
+
+
+
+KUnit tests for TTM (DRM_TTM_KUNIT_TEST) [N/m/y/?] (NEW) y
+--------------
+i may or may not need this on desktop, no idea, but Y so far(I've one currently /dev/fb0):
+Provide legacy /dev/fb* device (FB_DEVICE) [Y/n/?] (NEW) ?
+
+CONFIG_FB_DEVICE:
+
+Say Y here if you want the legacy /dev/fb* device file and
+interfaces within sysfs anc procfs. It is only required if you
+have userspace programs that depend on fbdev for graphics output.
+This does not affect the framebuffer console. If unsure, say N.
+
+Symbol: FB_DEVICE [=y]
+Type  : bool
+Defined at drivers/video/fbdev/core/Kconfig:29
+  Prompt: Provide legacy /dev/fb* device
+  Depends on: HAS_IOMEM [=y] && FB_CORE [=y]
+  Location:
+    -> Device Drivers
+      -> Graphics support
+        -> Frame buffer Devices
+          -> Provide legacy /dev/fb* device (FB_DEVICE [=y])
+
+
+
+Provide legacy /dev/fb* device (FB_DEVICE) [Y/n/?] (NEW) y
+--------------
+CONFIG_CLK_FD_KUNIT_TEST:
+
+Kunit test for the clk-fractional-divider type.
+
+Symbol: CLK_FD_KUNIT_TEST [=n]
+Type  : tristate
+Defined at drivers/clk/Kconfig:529
+  Prompt: Basic fractional divider type Kunit test
+  Depends on: COMMON_CLK [=y] && KUNIT [=y]
+  Visible if: COMMON_CLK [=y] && KUNIT [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Device Drivers
+      -> Common Clock Framework (COMMON_CLK [=y])
+        -> Basic fractional divider type Kunit test (CLK_FD_KUNIT_TEST [=n])
+
+
+
+  Basic fractional divider type Kunit test (CLK_FD_KUNIT_TEST) [N/m/y/?] (NEW) y
+--------------
+because I might wanna try it:
+CONFIG_TMPFS_QUOTA:
+
+Quota support allows to set per user and group limits for tmpfs
+usage.  Say Y to enable quota support. Once enabled you can control
+user and group quota enforcement with quota, usrquota and grpquota
+mount options.
+
+If unsure, say N.
+
+Symbol: TMPFS_QUOTA [=n]
+Type  : bool
+Defined at fs/Kconfig:242
+  Prompt: Tmpfs quota support
+  Depends on: TMPFS [=y]
+  Location:
+    -> File systems
+      -> Pseudo filesystems
+        -> Tmpfs virtual memory file system support (former shm fs) (TMPFS [=y])
+          -> Tmpfs quota support (TMPFS_QUOTA [=n])
+Selects: QUOTA [=n]
+
+
+
+  Tmpfs quota support (TMPFS_QUOTA) [N/y/?] (NEW) y
+--------------
+thru netlink tho?
+CONFIG_QUOTA_NETLINK_INTERFACE:
+
+If you say Y here, quota warnings (about exceeding softlimit, reaching
+hardlimit, etc.) will be reported through netlink interface. If unsure,
+say Y.
+
+Symbol: QUOTA_NETLINK_INTERFACE [=n]
+Type  : bool
+Defined at fs/quota/Kconfig:21
+  Prompt: Report quota messages through netlink interface
+  Depends on: QUOTACTL [=y] && NET [=y]
+  Location:
+    -> File systems
+      -> Report quota messages through netlink interface (QUOTA_NETLINK_INTERFACE [=n])
+
+
+
+Report quota messages through netlink interface (QUOTA_NETLINK_INTERFACE) [N/y/?] (NEW) y
+--------------
+CONFIG_QUOTA_DEBUG:
+
+If you say Y here, quota subsystem will perform some additional
+sanity checks of quota internal structures. If unsure, say N.
+
+Symbol: QUOTA_DEBUG [=n]
+Type  : bool
+Defined at fs/quota/Kconfig:39
+  Prompt: Additional quota sanity checks
+  Depends on: QUOTA [=y]
+  Location:
+    -> File systems
+      -> Additional quota sanity checks (QUOTA_DEBUG [=n])
+
+
+
+Additional quota sanity checks (QUOTA_DEBUG) [N/y/?] (NEW) y
+--------------
+CONFIG_SECURITY_SELINUX:
+
+This selects Security-Enhanced Linux (SELinux).
+You will also need a policy configuration and a labeled filesystem.
+If you are unsure how to answer this question, answer N.
+
+Symbol: SECURITY_SELINUX [=n]
+Type  : bool
+Defined at security/selinux/Kconfig:2
+  Prompt: SELinux Support
+  Depends on: SECURITY_NETWORK [=y] && AUDIT [=y] && NET [=y] && INET [=y]
+  Location:
+    -> Security options
+      -> SELinux Support (SECURITY_SELINUX [=n])
+Selects: NETWORK_SECMARK [=n]
+
+
+
+SELinux Support (SECURITY_SELINUX) [N/y/?] (NEW) n
+--------------
+I should probably do N here, but Y it is:
+CONFIG_SWIOTLB_DYNAMIC:
+
+This enables dynamic resizing of the software IO TLB. The kernel
+starts with one memory pool at boot and it will allocate additional
+pools as needed. To reduce run-time kernel memory requirements, you
+may have to specify a smaller size of the initial pool using
+"swiotlb=" on the kernel command line.
+
+If unsure, say N.
+
+Symbol: SWIOTLB_DYNAMIC [=n]
+Type  : bool
+Defined at kernel/dma/Kconfig:93
+  Prompt: Dynamic allocation of DMA bounce buffers
+  Depends on: SWIOTLB [=y]
+  Location:
+    -> Library routines
+      -> Dynamic allocation of DMA bounce buffers (SWIOTLB_DYNAMIC [=n])
+
+
+
+Dynamic allocation of DMA bounce buffers (SWIOTLB_DYNAMIC) [N/y/?] (NEW) y
+--------------
+CONFIG_LWQ_TEST:
+
+Run boot-time test of light-weight queuing.
+
+Symbol: LWQ_TEST [=n]
+Type  : bool
+Defined at lib/Kconfig:735
+  Prompt: Boot-time test for lwq queuing
+  Location:
+    -> Library routines
+      -> Boot-time test for lwq queuing (LWQ_TEST [=n])
+
+
+
+Boot-time test for lwq queuing (LWQ_TEST) [N/y/?] (NEW) y
+--------------
+  CONFIG_TEST_IOV_ITER:
+
+Enable this to turn on testing of the operation of the I/O iterator
+(iov_iter). This test is executed only once during system boot (so
+affects only boot time), or at module load time.
+
+If unsure, say N.
+
+Symbol: TEST_IOV_ITER [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2234
+  Prompt: Test iov_iter operation
+  Depends on: RUNTIME_TESTING_MENU [=y] && KUNIT [=y]
+  Visible if: RUNTIME_TESTING_MENU [=y] && KUNIT [=y] && !KUNIT_ALL_TESTS [=n]
+  Location:
+    -> Kernel hacking
+      -> Kernel Testing and Coverage
+        -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+          -> Test iov_iter operation (TEST_IOV_ITER [=n])
+
+
+
+  Test iov_iter operation (TEST_IOV_ITER) [N/m/y/?] (NEW) y
+--------------
+CONFIG_TEST_OBJPOOL:
+
+This builds the "test_objpool" module that should be used for
+correctness verification and concurrent testings of objects
+allocation and reclamation.
+
+If unsure, say N.
+
+Symbol: TEST_OBJPOOL [=n]
+Type  : tristate
+Defined at lib/Kconfig.debug:2942
+  Prompt: Test module for correctness and stress of objpool
+  Depends on: RUNTIME_TESTING_MENU [=y] && m && MODULES [=y] && DEBUG_KERNEL [=y]
+  Location:
+    -> Kernel hacking
+      -> Kernel Testing and Coverage
+        -> Runtime Testing (RUNTIME_TESTING_MENU [=y])
+          -> Test module for correctness and stress of objpool (TEST_OBJPOOL [=n])
+
+
+
+  Test module for correctness and stress of objpool (TEST_OBJPOOL) [N/m/?] (NEW) m
+--------
+CONFIG_MD_BITMAP_FILE:
+
+If you say Y here, support for write intent bitmaps in files on an
+external file system is enabled.  This is an alternative to the internal
+bitmaps near the MD superblock, and very problematic code that abuses
+various kernel APIs and can only work with files on a file system not
+actually sitting on the MD device.
+
+Symbol: MD_BITMAP_FILE [=y]
+Type  : bool
+Defined at drivers/md/Kconfig:54
+  Prompt: MD bitmap file support (deprecated)
+  Depends on: MD [=y]
+  Location:
+    -> Device Drivers
+      -> Multiple devices driver support (RAID and LVM) (MD [=y])
+        -> MD bitmap file support (deprecated) (MD_BITMAP_FILE [=y])
+
+
+
+  MD bitmap file support (deprecated) (MD_BITMAP_FILE) [Y/n/?] (NEW) n
+
+This shows as "[ ] MD bitmap file support (deprecated)", so I guess I understood it correctly.
+
 --------------
 --------------
 --------------
@@ -3823,6 +4243,6 @@ grep: warning: stray \ before +
 --------------
 --------------
 // KEEP THIS LAST!
-// note: this only works when non-root!
+// note: this only works when non-root! UPDATE: should work as root too now, 09feb2024
 // thanks <telemachus> on #vim freenode irc, for a filetype that's not .c or .cpp which ale would yell/error on:
 // vim: set ft=javascript:
