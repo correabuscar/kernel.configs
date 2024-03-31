@@ -471,6 +471,31 @@ from kernel 6.7.6 to 6.7.8(or 9), these were the changes(done automatically):
 +CONFIG_SCHED_PDS is not set
 -CONFIG_UCLAMP_TASK is not set
 --------
+TODO: for security: (it's already a todo in why.log)
+── Prove KVM MMU correctness ──────────────────────────────────────────────────────
+
+ CONFIG_KVM_PROVE_MMU:
+
+ Enables runtime assertions in KVM's MMU that are too costly to enable
+ in anything remotely resembling a production environment, e.g. this
+ gates code that verifies a to-be-freed page table doesn't have any
+ present SPTEs.
+
+ If in doubt, say "N".
+
+ Symbol: KVM_PROVE_MMU [=n]
+ Type  : bool
+ Defined at arch/x86/kvm/Kconfig:165
+   Prompt: Prove KVM MMU correctness
+   Depends on: VIRTUALIZATION [=y] && DEBUG_KERNEL [=y] && KVM [=m] && EXPERT [=y]
+   Location:
+     -> Virtualization (VIRTUALIZATION [=y])
+	 -> Kernel-based Virtual Machine (KVM) support (KVM [=m])
+         -> Prove KVM MMU correctness (KVM_PROVE_MMU [=n])
+
+
+
+                                      <OK>
 --------
 --------
 --------
