@@ -4345,6 +4345,13 @@ This configuration should provide necessary support for Skylake systems while al
 +CONFIG_KVM_SW_PROTECTED_VM is not set
 this is apparently not ready to be used yet, keeping unset; in 6.8.2 kernel
 --------------
+possible renames from 6.7.9 to 6.8.2 kernel:
+-CONFIG_FB_SYS_FOPS=y
++CONFIG_FB_SYSMEM_FOPS=y
+
+-CONFIG_THERMAL_ACPI=y
++CONFIG_ACPI_THERMAL_LIB=y
+
 --------------
 --------------
 --------------
