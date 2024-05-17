@@ -4353,6 +4353,36 @@ possible renames from 6.7.9 to 6.8.2 kernel:
 +CONFIG_ACPI_THERMAL_LIB=y
 
 --------------
+from 6.8.6->6.9.1
+┌── Core Scheduling for SMT ──────────────────────────────────────────────
+│
+│ CONFIG_SCHED_CORE:
+│
+│ This option permits Core Scheduling, a means of coordinated task
+│ selection across SMT siblings. When enabled -- see
+│ prctl(PR_SCHED_CORE) -- task selection ensures that all SMT siblings
+│ will execute a task from the same 'core group', forcing idle when no
+│ matching task is found.
+│
+│ Use of this feature includes:
+│  - mitigation of some (not all) SMT side channels;
+│  - limiting SMT interference to improve determinism and/or performance.
+│
+│ SCHED_CORE is default disabled. When it is enabled and unused,
+│ which is the likely usage by Linux distributions, there should
+│ be no measurable impact on performance.
+│
+│
+│
+│ Symbol: SCHED_CORE [=n]
+│ Type  : bool
+│ Defined at kernel/Kconfig.preempt:118
+│   Prompt: Core Scheduling for SMT
+│   Depends on: SCHED_SMT [=y]
+│   Location:
+│     -> General setup
+│	 -> Core Scheduling for SMT (SCHED_CORE [=n])
+set CONFIG_SCHED_CORE to Y for now, but it's disabled by default unless that prctl is used (dno how it works at the moment)
 --------------
 --------------
 --------------
